@@ -183,6 +183,21 @@ mod tests {
         assert_eq!(rates("claude-haiku-3-5"), (0.8, 4.0, 0.08, 1.0));
     }
 
+    /// Values from https://platform.openai.com/docs/pricing (checked
+    /// 2026-10-31); cache_write is the 30-minute write rate where listed.
+    #[test]
+    fn openai_current_models() {
+        let rates = |m: &str| {
+            let p = find(m);
+            (p.input, p.output, p.cache_read, p.cache_write)
+        };
+        assert_eq!(rates("gpt-5.3-codex"), (1.75, 14.0, 0.175, 0.0));
+        assert_eq!(rates("gpt-6.1-sol"), (2.0, 10.0, 0.1, 2.5));
+        assert_eq!(rates("gpt-5.6-luna"), (0.2, 1.2, 0.02, 0.25));
+        assert_eq!(rates("gpt-4o-mini"), (0.15, 0.6, 0.075, 0.0));
+        assert_eq!(rates("o3"), (2.0, 8.0, 0.5, 0.0));
+    }
+
     #[test]
     fn rejects_bad_files() {
         assert!(parse(r#"{"version":"","models":[]}"#).is_err());

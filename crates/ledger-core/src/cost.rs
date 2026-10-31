@@ -187,6 +187,13 @@ mod tests {
         );
         assert_eq!(r("gpt-50"), None, "prefix must end at a separator");
         assert_eq!(r("mystery"), None);
+        assert_eq!(r("gpt-5.3-codex").as_deref(), Some("gpt-5.3-codex"));
+        assert_eq!(r("gpt-5.3-codex-high").as_deref(), Some("gpt-5.3-codex"));
+        assert_eq!(
+            r("gpt-5.4-mini").as_deref(),
+            Some("gpt-5.4-mini"),
+            "not gpt-5.4"
+        );
     }
 
     #[test]
