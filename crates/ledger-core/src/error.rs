@@ -18,6 +18,12 @@ pub enum Error {
     /// JSON (de)serialization failure.
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+    /// SQLite failure.
+    #[error("database error: {0}")]
+    Db(#[from] rusqlite::Error),
+    /// A migration could not be applied.
+    #[error("migration {version} failed: {message}")]
+    Migration { version: u32, message: String },
     /// A caller passed a value the core cannot accept.
     #[error("invalid input: {0}")]
     InvalidInput(String),
@@ -37,6 +43,8 @@ impl Error {
         match self {
             Self::Io { .. } => "io",
             Self::Json(_) => "json",
+            Self::Db(_) => "db",
+            Self::Migration { .. } => "migration",
             Self::InvalidInput(_) => "invalid_input",
         }
     }
