@@ -40,6 +40,9 @@ pub struct ModelPrice {
     /// Rate for extended (1-hour) cache writes, when the vendor offers them.
     #[serde(default)]
     pub cache_write_1h: Option<f64>,
+    /// Rate for 12-hour cache writes (OpenAI's extended prompt cache).
+    #[serde(default)]
+    pub cache_write_12h: Option<f64>,
     /// Higher rates for long prompts, e.g. Gemini 2.5 Pro above 200k tokens.
     #[serde(default)]
     pub long_context: Vec<LongContextRate>,
@@ -55,6 +58,8 @@ pub struct LongContextRate {
     pub cache_read: f64,
     #[serde(default)]
     pub cache_write: f64,
+    #[serde(default)]
+    pub cache_write_12h: Option<f64>,
 }
 
 /// Parses and validates a price file.
@@ -67,6 +72,7 @@ pub fn parse(json: &str) -> Result<PriceFile> {
     for m in &f.models {
         let mut rates = vec![m.input, m.output, m.cache_read, m.cache_write];
         rates.extend(m.cache_write_1h);
+        rates.extend(m.cache_write_12h);
         for t in &m.long_context {
             if t.above_prompt_tokens == 0 {
                 return Err(Error::InvalidInput(format!(
@@ -112,8 +118,8 @@ pub fn sync(conn: &mut Connection, file: &PriceFile) -> Result<bool> {
     for m in &file.models {
         tx.execute(
             "INSERT INTO prices (model, effective_from, input_per_mtok, output_per_mtok,
-                 cache_read_per_mtok, cache_write_per_mtok, cache_write_1h_per_mtok, source)
-             VALUES (?1, ?2 || 'T00:00:00Z', ?3, ?4, ?5, ?6, ?7, 'bundled')",
+                 cache_read_per_mtok, cache_write_per_mtok, cache_write_1h_per_mtok, cache_write_12h_per_mtok, source)
+             VALUES (?1, ?2 || 'T00:00:00Z', ?3, ?4, ?5, ?6, ?7, ?8, 'bundled')",
             (
                 &m.model,
                 &m.effective_from,
@@ -122,13 +128,15 @@ pub fn sync(conn: &mut Connection, file: &PriceFile) -> Result<bool> {
                 m.cache_read,
                 m.cache_write,
                 m.cache_write_1h,
+                m.cache_write_12h,
             ),
         )?;
         for t in &m.long_context {
             tx.execute(
                 "INSERT INTO price_tiers (model, effective_from, source, above_prompt_tokens,
-                     input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok)
-                 VALUES (?1, ?2 || 'T00:00:00Z', 'bundled', ?3, ?4, ?5, ?6, ?7)",
+                     input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok,
+                     cache_write_12h_per_mtok)
+                 VALUES (?1, ?2 || 'T00:00:00Z', 'bundled', ?3, ?4, ?5, ?6, ?7, ?8)",
                 (
                     &m.model,
                     &m.effective_from,
@@ -137,6 +145,7 @@ pub fn sync(conn: &mut Connection, file: &PriceFile) -> Result<bool> {
                     t.output,
                     t.cache_read,
                     t.cache_write,
+                    t.cache_write_12h,
                 ),
             )?;
         }
