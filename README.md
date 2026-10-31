@@ -40,5 +40,5 @@ Requires Node 20+ and the [Tauri v2 prerequisites](https://v2.tauri.app/start/pr
 
 ```sh
 npm --prefix ui ci
-npm --prefix ui run tauri dev   # run from ui/; the Tauri CLI finds ../src-tauri
+ui/node_modules/.bin/tauri dev   # from the repo root
 ```

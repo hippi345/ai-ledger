@@ -85,8 +85,10 @@ jobs:
       - run: npm ci
         working-directory: ui
       - name: tauri build
-        run: npm run tauri build
-        working-directory: ui
+        # Run from the repo root so the CLI finds src-tauri/; it runs the
+        # beforeBuildCommand inside ui/ (the frontend package).
+        run: ui/node_modules/.bin/tauri build
+        shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: ai-ledger-${{ matrix.os }}
