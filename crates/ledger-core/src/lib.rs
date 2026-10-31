@@ -4,6 +4,7 @@
 
 pub mod db;
 pub mod error;
+pub mod ingest;
 pub mod logging;
 pub mod migrations;
 
