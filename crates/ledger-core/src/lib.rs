@@ -3,6 +3,7 @@
 //! Everything here runs fully offline; this crate never performs network I/O.
 
 pub mod backup;
+pub mod cost;
 pub mod db;
 pub mod error;
 pub mod ingest;
