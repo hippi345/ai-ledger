@@ -1,0 +1,38 @@
+{
+  "_comment": "Synthetic cursorDiskKV rows shaped like Cursor's globalStorage/state.vscdb. No real prompts; text fields are placeholders the reader must ignore.",
+  "rows": {
+    "composerData:c-1": {
+      "composerId": "c-1",
+      "createdAt": 1793448000000,
+      "lastUpdatedAt": 1793448300000,
+      "modelConfig": { "modelName": "claude-4-sonnet" },
+      "fullConversationHeadersOnly": [
+        { "bubbleId": "b-1", "type": 1 },
+        { "bubbleId": "b-2", "type": 2 },
+        { "bubbleId": "b-3", "type": 1 },
+        { "bubbleId": "b-4", "type": 2 }
+      ]
+    },
+    "bubbleId:c-1:b-1": { "bubbleId": "b-1", "type": 1, "text": "PLACEHOLDER", "createdAt": "2026-10-31T12:00:00.000Z" },
+    "bubbleId:c-1:b-2": {
+      "bubbleId": "b-2", "type": 2, "text": "PLACEHOLDER",
+      "createdAt": "2026-10-31T12:00:05.000Z",
+      "tokenCount": { "inputTokens": 1200, "outputTokens": 340 }
+    },
+    "bubbleId:c-1:b-3": { "bubbleId": "b-3", "type": 1, "text": "PLACEHOLDER", "createdAt": "2026-10-31T12:03:00.000Z" },
+    "bubbleId:c-1:b-4": {
+      "bubbleId": "b-4", "type": 2, "text": "PLACEHOLDER",
+      "createdAt": "2026-10-31T12:03:09.000Z",
+      "modelInfo": { "modelName": "gpt-5" },
+      "tokenCount": { "inputTokens": 2500, "outputTokens": 800 }
+    },
+    "composerData:c-2": {
+      "composerId": "c-2",
+      "createdAt": 1793534400000,
+      "lastUpdatedAt": 1793534460000,
+      "fullConversationHeadersOnly": [ { "bubbleId": "x-1", "type": 2 } ]
+    },
+    "bubbleId:c-2:x-1": { "bubbleId": "x-1", "type": 2, "text": "PLACEHOLDER" },
+    "composerData:broken": "not json"
+  }
+}
