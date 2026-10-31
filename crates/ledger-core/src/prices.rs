@@ -388,6 +388,24 @@ mod tests {
         assert!(parse(tier).is_err(), "tier 12h rate is validated");
     }
 
+    /// Vendors whose placeholder dates (2025-01-01) were replaced by launch
+    /// dates, which are marked as estimates.
+    const DATED_VENDORS: &[&str] = &["claude-"];
+
+    #[test]
+    fn launch_dates_replace_placeholders() {
+        let all = bundled().unwrap().models;
+        for m in all
+            .iter()
+            .filter(|m| DATED_VENDORS.iter().any(|p| m.model.starts_with(p)))
+        {
+            assert_ne!(m.effective_from, "2025-01-01", "{}", m.model);
+        }
+        let opus = all.iter().find(|m| m.model == "claude-opus-4-6").unwrap();
+        assert_eq!(opus.effective_from, "2026-02-05");
+        assert!(opus.is_estimated("effective_from"));
+    }
+
     #[test]
     fn rejects_bad_files() {
         assert!(parse(r#"{"version":"","models":[]}"#).is_err());
