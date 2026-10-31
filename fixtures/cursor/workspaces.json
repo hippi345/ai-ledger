@@ -1,0 +1,37 @@
+{
+  "_comment": "Synthetic workspaceStorage entries: workspace.json folder plus the composer list kept in the workspace state.vscdb ItemTable.",
+  "workspaces": {
+    "ws1": {
+      "workspace.json": {
+        "folder": "file:///home/joel/code/ai%20ledger"
+      },
+      "composer.composerData": {
+        "allComposers": [
+          {
+            "composerId": "c-1"
+          }
+        ]
+      }
+    },
+    "ws2": {
+      "workspace.json": {
+        "folder": "file:///c%3A/Users/joel/proj/randobot"
+      },
+      "composer.composerData": {
+        "allComposers": [
+          {
+            "composerId": "c-2"
+          }
+        ]
+      }
+    },
+    "ws3": {
+      "workspace.json": {
+        "workspace": "file:///home/joel/multi.code-workspace"
+      },
+      "composer.composerData": {
+        "allComposers": []
+      }
+    }
+  }
+}

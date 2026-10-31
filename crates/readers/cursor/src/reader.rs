@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::{self, Composer};
 use crate::paths::{CursorPaths, Env, Os};
+use crate::projects;
 use crate::snapshot::Snapshot;
 
 pub const READER_ID: &str = "cursor";
@@ -78,6 +79,7 @@ impl Reader for CursorReader {
         let paths = CursorPaths::new(Self::config(cfg)?.root);
         let since = parse_cursor(cursor);
         let snap = Snapshot::take(&paths.global_db)?;
+        let projects = projects::composer_projects(&paths);
         let mut events = Vec::new();
         let mut newest = since;
         for (key, value) in snap.scan_prefix(KV, model::COMPOSER_PREFIX)? {
@@ -92,7 +94,8 @@ impl Reader for CursorReader {
             }
             newest = newest.max(mark);
             let id = composer.composer_id.clone();
-            events.extend(model::composer_events(&composer, |bubble| {
+            let project = projects.get(&id).map(String::as_str);
+            events.extend(model::composer_events(&composer, project, |bubble| {
                 snap.get(KV, &format!("{}{id}:{bubble}", model::BUBBLE_PREFIX))
                     .ok()
                     .flatten()
@@ -205,6 +208,29 @@ mod tests {
         ledger_core::ingest::upsert_events(&mut db, 1, &ev).unwrap();
         let s = ledger_core::ingest::upsert_events(&mut db, 1, &ev).unwrap();
         assert_eq!(s.unchanged, 3);
+    }
+
+    #[test]
+    fn tool_calls_and_projects() {
+        let root = fixture_root();
+        crate::projects::tests::write_workspaces(root.path());
+        let (ev, _) = CursorReader::default()
+            .read_since(&cfg(root.path()), None)
+            .unwrap();
+        assert_eq!(ev[0].project.as_deref(), Some("ai ledger"));
+        assert_eq!(ev[2].project.as_deref(), Some("randobot"));
+        let t0 = &ev[0].tool_calls[0];
+        assert_eq!(
+            (t0.tool.as_str(), t0.mcp_server.as_deref(), t0.ok),
+            ("read_file", None, true)
+        );
+        let t1 = &ev[1].tool_calls[0];
+        assert_eq!(
+            (t1.tool.as_str(), t1.mcp_server.as_deref(), t1.ok),
+            ("create_issue", Some("github"), false)
+        );
+        assert_eq!(t1.duration_ms, Some(420));
+        assert!(ev[2].tool_calls.is_empty());
     }
 
     #[test]
