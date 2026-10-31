@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)] // test helpers outside #[test] fns
 use ai_ledger_lib::commands::settings::core;
 use ai_ledger_lib::state::AppState;
 use serde_json::json;
