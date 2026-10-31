@@ -28,6 +28,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "settings",
         sql: include_str!("../migrations/0002_settings.sql"),
     },
+    Migration {
+        version: 3,
+        name: "prices",
+        sql: include_str!("../migrations/0003_prices.sql"),
+    },
 ];
 
 /// Highest version known to this build (0 when there are none).
