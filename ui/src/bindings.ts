@@ -17,6 +17,14 @@ export const commands = {
 	resetSetting: (key: string) => typedError<boolean, IpcError>(__TAURI_INVOKE("reset_setting", { key })),
 	/**  Lists all stored settings, sorted by key. */
 	listSettings: () => typedError<SettingEntry[], IpcError>(__TAURI_INVOKE("list_settings")),
+	/**  Lists configured sources with their health. */
+	listSources: () => typedError<SourceInfo_Serialize[], IpcError>(__TAURI_INVOKE("list_sources")),
+	/**  Looks for AI apps' data on this machine. */
+	detectSources: () => typedError<Candidate[], IpcError>(__TAURI_INVOKE("detect_sources")),
+	/**  Adds a detected (or user-built) source. Returns its id. */
+	addSource: (candidate: Candidate) => typedError<number, IpcError>(__TAURI_INVOKE("add_source", { candidate })),
+	/**  Enables or disables a source. */
+	setSourceEnabled: (id: number, enabled: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_source_enabled", { id, enabled })),
 };
 
 /* Types */
@@ -24,6 +32,15 @@ export const commands = {
 export type AppInfo = {
 	appVersion: string,
 	coreVersion: string,
+};
+
+/**  A source the user can enable, found by a reader. */
+export type Candidate = {
+	readerId: string,
+	label: string,
+	config: Value,
+	/**  Whether an identical source is already configured. */
+	added: boolean,
 };
 
 /**  `{ code, message }`; `code` is stable for the UI to switch on. */
@@ -36,6 +53,33 @@ export type IpcError = {
 export type SettingEntry = {
 	key: string,
 	value: Value,
+};
+
+/**  A configured source with its latest health. */
+export type SourceInfo = SourceInfo_Serialize | SourceInfo_Deserialize;
+
+/**  A configured source with its latest health. */
+export type SourceInfo_Deserialize = {
+	id: number,
+	readerId: string,
+	tier: number,
+	config: Value,
+	enabled: boolean,
+	/**  `unknown`, `healthy`, or `unhealthy`. */
+	health: string,
+	error?: string | null,
+};
+
+/**  A configured source with its latest health. */
+export type SourceInfo_Serialize = {
+	id: number,
+	readerId: string,
+	tier: number,
+	config: Value,
+	enabled: boolean,
+	/**  `unknown`, `healthy`, or `unhealthy`. */
+	health: string,
+	error: string | null,
 };
 
 export type Value = null | boolean | number | string | Value[] | { [key in string]: Value };
