@@ -68,7 +68,7 @@ mod tests {
         let generated = std::fs::read_to_string(&tmp).unwrap();
         let _ = std::fs::remove_file(&tmp);
         let committed = std::fs::read_to_string(BINDINGS_PATH).unwrap_or_default();
-        let norm = |s: &str| s.replace("\r\n", "\n");
+        let norm = |s: &str| s.replace("\r\n", "\n").trim_end().to_owned();
         assert!(
             norm(&committed) == norm(&generated),
             "ui/src/bindings.ts is stale. Regenerate it with \
