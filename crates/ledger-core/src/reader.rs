@@ -140,7 +140,7 @@ impl Registry {
             ))),
             Some(r) => match catch_unwind(AssertUnwindSafe(|| r.read_since(cfg, cursor))) {
                 Ok(res) => res,
-                Err(p) => Err(Error::InvalidInput(format!(
+                Err(p) => Err(Error::Reader(format!(
                     "reader panicked: {}",
                     panic_msg(p.as_ref())
                 ))),
@@ -252,6 +252,7 @@ mod tests {
         assert!(r.read_source(&cfg(2, "err"), None).is_err());
         let e = r.read_source(&cfg(3, "panic"), None).unwrap_err();
         assert!(e.to_string().contains("read boom"));
+        assert_eq!(e.code(), "reader", "panics are reader errors, not bad input");
         assert!(r.read_source(&cfg(4, "missing"), None).is_err());
         assert_eq!(r.health(1), Health::Healthy { events: 1 });
         assert!(matches!(r.health(2), Health::Unhealthy { .. }));
