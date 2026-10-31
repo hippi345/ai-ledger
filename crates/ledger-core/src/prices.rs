@@ -198,6 +198,19 @@ mod tests {
         assert_eq!(rates("o3"), (2.0, 8.0, 0.5, 0.0));
     }
 
+    /// Values from https://ai.google.dev/gemini-api/docs/pricing (checked 2026-10-31).
+    #[test]
+    fn google_current_models() {
+        let rates = |m: &str| {
+            let p = find(m);
+            (p.input, p.output, p.cache_read)
+        };
+        assert_eq!(rates("gemini-4-argon"), (2.0, 10.0, 0.1));
+        assert_eq!(rates("gemini-3.8-flash"), rates("gemini-3.6-flash"));
+        assert_eq!(rates("gemini-3.1-pro-preview"), (2.0, 12.0, 0.2));
+        assert_eq!(rates("gemini-2.5-flash-lite"), (0.1, 0.4, 0.01));
+    }
+
     #[test]
     fn rejects_bad_files() {
         assert!(parse(r#"{"version":"","models":[]}"#).is_err());
