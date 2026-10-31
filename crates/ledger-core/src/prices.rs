@@ -46,6 +46,29 @@ pub struct ModelPrice {
     /// Higher rates for long prompts, e.g. Gemini 2.5 Pro above 200k tokens.
     #[serde(default)]
     pub long_context: Vec<LongContextRate>,
+    /// Fields whose values are best estimates rather than read from a vendor
+    /// page, e.g. `["effective_from"]` when the launch date is approximate.
+    #[serde(default)]
+    pub estimated: Vec<String>,
+}
+
+/// Field names that may appear in [`ModelPrice::estimated`].
+pub const ESTIMABLE_FIELDS: &[&str] = &[
+    "effective_from",
+    "input",
+    "output",
+    "cache_read",
+    "cache_write",
+    "cache_write_1h",
+    "cache_write_12h",
+    "long_context",
+];
+
+impl ModelPrice {
+    /// Whether `field` is marked as an estimate.
+    pub fn is_estimated(&self, field: &str) -> bool {
+        self.estimated.iter().any(|f| f == field)
+    }
 }
 
 /// Rates applying when the prompt exceeds `above_prompt_tokens`.
@@ -81,9 +104,20 @@ pub fn parse(json: &str) -> Result<PriceFile> {
                 )));
             }
             rates.extend([t.input, t.output, t.cache_read, t.cache_write]);
+            rates.extend(t.cache_write_12h);
         }
         if rates.iter().any(|r| !r.is_finite() || *r < 0.0) {
             return Err(Error::InvalidInput(format!("bad rate for {}", m.model)));
+        }
+        if let Some(f) = m
+            .estimated
+            .iter()
+            .find(|f| !ESTIMABLE_FIELDS.contains(&f.as_str()))
+        {
+            return Err(Error::InvalidInput(format!(
+                "unknown estimated field {f} for {}",
+                m.model
+            )));
         }
         if m.effective_from.len() != 10 {
             return Err(Error::InvalidInput(format!(
@@ -337,6 +371,21 @@ mod tests {
             .iter()
             .filter(|m| !m.model.starts_with("gpt-"))
             .all(|m| m.cache_write_12h.is_none()));
+    }
+
+    #[test]
+    fn estimated_fields_are_validated() {
+        let ok = r#"{"version":"v","models":[{"model":"m","effective_from":"2025-01-01",
+            "input":1,"output":2,"estimated":["effective_from"]}]}"#;
+        let m = &parse(ok).unwrap().models[0];
+        assert!(m.is_estimated("effective_from"));
+        assert!(!m.is_estimated("input"));
+        let bad = ok.replace("[\"effective_from\"]", "[\"launch\"]");
+        assert!(parse(&bad).is_err());
+        let tier = r#"{"version":"v","models":[{"model":"m","effective_from":"2025-01-01",
+            "input":1,"output":2,"long_context":[{"above_prompt_tokens":5,"input":1,
+            "output":1,"cache_write_12h":-1}]}]}"#;
+        assert!(parse(tier).is_err(), "tier 12h rate is validated");
     }
 
     #[test]
