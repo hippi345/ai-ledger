@@ -111,7 +111,24 @@ fn insert_tool_calls(conn: &Connection, event_id: i64, calls: &[NewToolCall]) ->
     Ok(())
 }
 
-/// Upserts `events` for `source_id` in one transaction.
+/// Creates the session row an event refers to, or widens its time span.
+fn touch_session(conn: &Connection, e: &NewEvent) -> Result<()> {
+    let Some(id) = &e.session_id else {
+        return Ok(());
+    };
+    conn.prepare_cached(
+        "INSERT INTO sessions (id, app, project, started, ended) VALUES (?1, ?2, ?3, ?4, ?4)
+         ON CONFLICT(id) DO UPDATE SET
+             started = MIN(started, excluded.started),
+             ended   = MAX(COALESCE(ended, excluded.ended), excluded.ended),
+             project = COALESCE(project, excluded.project)",
+    )?
+    .execute((id, &e.app, &e.project, &e.ts_utc))?;
+    Ok(())
+}
+
+/// Upserts `events` for `source_id` in one transaction. Sessions referenced by
+/// events are created on first sight and their start/end span is widened.
 pub fn upsert_events(
     conn: &mut Connection,
     source_id: i64,
@@ -152,6 +169,7 @@ pub fn upsert_events(
             e.estimated,
             &e.raw_hash,
         );
+        touch_session(&tx, e)?;
         match stored {
             Some(row) if same(&row, e) => stats.unchanged += 1,
             Some(row) => {
@@ -278,6 +296,30 @@ mod tests {
             .query_row("SELECT input_tokens FROM events", [], |r| r.get(0))
             .unwrap();
         assert_eq!(v, 15);
+    }
+
+    #[test]
+    fn sessions_are_created_and_widened() {
+        let mut c = setup();
+        let mut a = ev("1", 1);
+        a.session_id = Some("s".into());
+        a.ts_utc = "2026-10-31T12:05:00Z".into();
+        let mut b = ev("2", 1);
+        b.session_id = Some("s".into());
+        b.ts_utc = "2026-10-31T12:00:00Z".into();
+        b.project = Some("ai-ledger".into());
+        upsert_events(&mut c, 1, &[a, b]).unwrap();
+        let row: (String, String, Option<String>) = c
+            .query_row(
+                "SELECT started, ended, project FROM sessions WHERE id='s'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(row.0, "2026-10-31T12:00:00Z");
+        assert_eq!(row.1, "2026-10-31T12:05:00Z");
+        assert_eq!(row.2.as_deref(), Some("ai-ledger"));
+        assert_eq!(count(&c, "sessions"), 1);
     }
 
     #[test]
