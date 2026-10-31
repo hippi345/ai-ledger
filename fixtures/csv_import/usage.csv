@@ -1,0 +1,5 @@
+Date,Model,Input Tokens,Output Tokens,Cached Input,Requests,Project
+2026-10-29,gpt-5,"1,200",300,0,4,alpha
+2026-10-30T15:04:05Z,gpt-5-mini,800,120,50,2,
+1793448000,o4-mini,10,5,,1,beta
+not-a-date,gpt-5,1,1,0,1,alpha

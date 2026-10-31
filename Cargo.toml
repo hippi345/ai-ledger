@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/ledger-core", "crates/readers/cursor", "crates/readers/claude_code"]
+members = ["crates/ledger-core", "crates/readers/cursor", "crates/readers/claude_code", "crates/readers/csv_import"]
 
 [workspace.package]
 version = "0.1.0"
