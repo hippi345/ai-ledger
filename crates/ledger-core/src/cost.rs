@@ -356,6 +356,43 @@ mod tests {
         );
     }
 
+    /// OpenAI >272k surcharge (https://platform.openai.com/docs/pricing, read
+    /// 2026-10-31): input 2x, output 1.5x, cached input and cache writes 2x.
+    #[test]
+    fn openai_long_context_surcharge() {
+        let c = setup();
+        let at = "2026-10-31T00:00:00Z";
+        for n in [
+            "gpt-6-astra",
+            "gpt-5.6-terra",
+            "gpt-5.5",
+            "gpt-5.4",
+            "gpt-6-rosalind",
+        ] {
+            let r = rate_at(&c, n, at).unwrap().unwrap();
+            assert_eq!(r.tiers.len(), 1, "{n}");
+            let t = &r.tiers[0];
+            assert_eq!(t.above_prompt_tokens, 272_000, "{n}");
+            assert!((t.input - 2.0 * r.input).abs() < 1e-9, "{n}");
+            assert!((t.output - 1.5 * r.output).abs() < 1e-9, "{n}");
+            assert!((t.cache_read - 2.0 * r.cache_read).abs() < 1e-9, "{n}");
+            assert!((t.cache_write - 2.0 * r.cache_write).abs() < 1e-9, "{n}");
+        }
+        let r = rate_at(&c, "gpt-6-astra", at).unwrap().unwrap();
+        assert_eq!(r.tiers[0].cache_write_12h, Some(50.0));
+        let long = Tokens {
+            input: 300_000,
+            output: 1_000_000,
+            ..Tokens::default()
+        };
+        assert!((cost(&r, long) - (6.0 + 75.0)).abs() < 1e-9);
+        let pro = rate_at(&c, "gpt-5.5-pro-2026", at).unwrap().unwrap();
+        assert_eq!(pro.model, "gpt-5.5-pro");
+        for n in ["gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"] {
+            assert!(rate_at(&c, n, at).unwrap().unwrap().tiers.is_empty(), "{n}");
+        }
+    }
+
     #[test]
     fn one_hour_cache_writes_use_their_own_rate() {
         let c = setup();
