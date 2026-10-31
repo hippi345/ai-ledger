@@ -37,6 +37,21 @@ pub struct ModelPrice {
     pub cache_read: f64,
     #[serde(default)]
     pub cache_write: f64,
+    /// Higher rates for long prompts, e.g. Gemini 2.5 Pro above 200k tokens.
+    #[serde(default)]
+    pub long_context: Vec<LongContextRate>,
+}
+
+/// Rates applying when the prompt exceeds `above_prompt_tokens`.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct LongContextRate {
+    pub above_prompt_tokens: u64,
+    pub input: f64,
+    pub output: f64,
+    #[serde(default)]
+    pub cache_read: f64,
+    #[serde(default)]
+    pub cache_write: f64,
 }
 
 /// Parses and validates a price file.
@@ -47,7 +62,16 @@ pub fn parse(json: &str) -> Result<PriceFile> {
     }
     let mut names = std::collections::HashSet::new();
     for m in &f.models {
-        let rates = [m.input, m.output, m.cache_read, m.cache_write];
+        let mut rates = vec![m.input, m.output, m.cache_read, m.cache_write];
+        for t in &m.long_context {
+            if t.above_prompt_tokens == 0 {
+                return Err(Error::InvalidInput(format!(
+                    "bad tier threshold for {}",
+                    m.model
+                )));
+            }
+            rates.extend([t.input, t.output, t.cache_read, t.cache_write]);
+        }
         if rates.iter().any(|r| !r.is_finite() || *r < 0.0) {
             return Err(Error::InvalidInput(format!("bad rate for {}", m.model)));
         }
@@ -95,6 +119,22 @@ pub fn sync(conn: &mut Connection, file: &PriceFile) -> Result<bool> {
                 m.cache_write,
             ),
         )?;
+        for t in &m.long_context {
+            tx.execute(
+                "INSERT INTO price_tiers (model, effective_from, source, above_prompt_tokens,
+                     input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok)
+                 VALUES (?1, ?2 || 'T00:00:00Z', 'bundled', ?3, ?4, ?5, ?6, ?7)",
+                (
+                    &m.model,
+                    &m.effective_from,
+                    i64::try_from(t.above_prompt_tokens).unwrap_or(i64::MAX),
+                    t.input,
+                    t.output,
+                    t.cache_read,
+                    t.cache_write,
+                ),
+            )?;
+        }
         for a in &m.aliases {
             tx.execute(
                 "INSERT OR REPLACE INTO price_aliases (alias, model) VALUES (?1, ?2)",
@@ -209,6 +249,35 @@ mod tests {
         assert_eq!(rates("gemini-3.8-flash"), rates("gemini-3.6-flash"));
         assert_eq!(rates("gemini-3.1-pro-preview"), (2.0, 12.0, 0.2));
         assert_eq!(rates("gemini-2.5-flash-lite"), (0.1, 0.4, 0.01));
+    }
+
+    #[test]
+    fn long_context_tiers() {
+        let pro = find("gemini-2.5-pro").long_context;
+        assert_eq!(pro.len(), 1);
+        assert_eq!(
+            (
+                pro[0].above_prompt_tokens,
+                pro[0].input,
+                pro[0].output,
+                pro[0].cache_read
+            ),
+            (200_000, 2.5, 15.0, 0.25)
+        );
+        let haiku = &find("claude-haiku-5-5").long_context[0];
+        assert_eq!(
+            (
+                haiku.above_prompt_tokens,
+                haiku.input,
+                haiku.output,
+                haiku.cache_read,
+                haiku.cache_write
+            ),
+            (100_000, 0.5, 2.5, 0.05, 0.625)
+        );
+        let bad = r#"{"version":"v","models":[{"model":"m","effective_from":"2026-01-01","input":1,"output":1,
+            "long_context":[{"above_prompt_tokens":0,"input":1,"output":1}]}]}"#;
+        assert!(parse(bad).is_err());
     }
 
     #[test]
