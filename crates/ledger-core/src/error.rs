@@ -24,6 +24,9 @@ pub enum Error {
     /// A migration could not be applied.
     #[error("migration {version} failed: {message}")]
     Migration { version: u32, message: String },
+    /// A reader failed or panicked while reading its source.
+    #[error("reader error: {0}")]
+    Reader(String),
     /// A caller passed a value the core cannot accept.
     #[error("invalid input: {0}")]
     InvalidInput(String),
@@ -45,6 +48,7 @@ impl Error {
             Self::Json(_) => "json",
             Self::Db(_) => "db",
             Self::Migration { .. } => "migration",
+            Self::Reader(_) => "reader",
             Self::InvalidInput(_) => "invalid_input",
         }
     }
