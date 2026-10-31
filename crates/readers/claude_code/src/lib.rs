@@ -57,6 +57,26 @@ struct Usage {
     output_tokens: u64,
     cache_read_input_tokens: u64,
     cache_creation_input_tokens: u64,
+    /// Newer transcripts split cache writes by lifetime.
+    cache_creation: Option<CacheCreation>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct CacheCreation {
+    ephemeral_5m_input_tokens: u64,
+    ephemeral_1h_input_tokens: u64,
+}
+
+impl Usage {
+    /// `(5-minute, 1-hour)` cache writes. Without the split, all writes
+    /// count as standard 5-minute writes.
+    fn cache_writes(&self) -> (u64, u64) {
+        match &self.cache_creation {
+            Some(c) => (c.ephemeral_5m_input_tokens, c.ephemeral_1h_input_tokens),
+            None => (self.cache_creation_input_tokens, 0),
+        }
+    }
 }
 
 /// `content` is either a string (ignored) or a list of typed blocks.
@@ -120,6 +140,7 @@ fn line_event(raw: &str, file_session: &str) -> Option<NewEvent> {
         .id
         .map(|id| format!("msg:{id}:{}", l.request_id.unwrap_or_default()))
         .or_else(|| l.uuid.map(|u| format!("uuid:{u}")))?;
+    let (cache_5m, cache_1h) = usage.cache_writes();
     let tool_calls = msg
         .content
         .0
@@ -146,7 +167,8 @@ fn line_event(raw: &str, file_session: &str) -> Option<NewEvent> {
         input_tokens: usage.input_tokens,
         output_tokens: usage.output_tokens,
         cache_read_tokens: usage.cache_read_input_tokens,
-        cache_write_tokens: usage.cache_creation_input_tokens,
+        cache_write_tokens: cache_5m,
+        cache_write_1h_tokens: cache_1h,
         requests: 1,
         tool_calls,
         ..Default::default()
@@ -382,6 +404,16 @@ mod tests {
         let (ev, _) = r.read_since(&cfg(root.path()), Some(cur)).unwrap();
         assert_eq!(ev.len(), 1);
         assert_eq!(ev[0].output_tokens, 2);
+    }
+
+    #[test]
+    fn splits_5m_and_1h_cache_writes() {
+        let line = r#"{"type":"assistant","uuid":"a","sessionId":"s","timestamp":"2026-10-31T12:00:00Z","message":{"id":"m","model":"claude-sonnet-4-5","usage":{"input_tokens":1,"output_tokens":1,"cache_creation_input_tokens":300,"cache_creation":{"ephemeral_5m_input_tokens":100,"ephemeral_1h_input_tokens":200}}}}"#;
+        let e = line_event(line, "s").unwrap();
+        assert_eq!((e.cache_write_tokens, e.cache_write_1h_tokens), (100, 200));
+        let old = line.replace(r#","cache_creation":{"ephemeral_5m_input_tokens":100,"ephemeral_1h_input_tokens":200}"#, "");
+        let e = line_event(&old, "s").unwrap();
+        assert_eq!((e.cache_write_tokens, e.cache_write_1h_tokens), (300, 0));
     }
 
     #[test]
