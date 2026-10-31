@@ -314,6 +314,31 @@ mod tests {
             .all(|m| m.cache_write_1h.is_none()));
     }
 
+    /// OpenAI 12-hour cache writes (https://platform.openai.com/docs/pricing,
+    /// read 2026-10-31): 2x the 30-minute write; gpt-5.5/5.4 and older have none.
+    #[test]
+    fn openai_12h_cache_writes() {
+        let all = bundled().unwrap().models;
+        let get = |n: &str| all.iter().find(|m| m.model == n).unwrap();
+        for (n, r) in [
+            ("gpt-6-astra", 25.0),
+            ("gpt-5.6-luna", 0.5),
+            ("gpt-6-rosalind", 37.5),
+        ] {
+            let m = get(n);
+            assert_eq!(m.cache_write_12h, Some(r), "{n}");
+            assert!((r - m.cache_write * 2.0).abs() < 1e-9, "{n}");
+        }
+        for n in ["gpt-5.5", "gpt-5.4", "gpt-5", "gpt-4o"] {
+            assert_eq!(get(n).cache_write_12h, None, "{n}");
+            assert_eq!(get(n).cache_write, 0.0, "{n}");
+        }
+        assert!(all
+            .iter()
+            .filter(|m| !m.model.starts_with("gpt-"))
+            .all(|m| m.cache_write_12h.is_none()));
+    }
+
     #[test]
     fn rejects_bad_files() {
         assert!(parse(r#"{"version":"","models":[]}"#).is_err());
