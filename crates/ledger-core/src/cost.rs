@@ -139,6 +139,23 @@ pub fn price_event(conn: &Connection, event_id: i64) -> Result<()> {
     Ok(())
 }
 
+/// Re-prices every event (after a price edit or a new bundled table).
+/// Returns how many events were re-priced.
+pub fn recompute_all(conn: &mut Connection) -> Result<usize> {
+    let tx = conn.transaction()?;
+    let ids: Vec<i64> = {
+        let mut st = tx.prepare("SELECT id FROM events ORDER BY id")?;
+        let rows = st.query_map([], |r| r.get(0))?;
+        rows.collect::<rusqlite::Result<_>>()?
+    };
+    for id in &ids {
+        price_event(&tx, *id)?;
+    }
+    tx.commit()?;
+    tracing::info!(events = ids.len(), "recomputed costs");
+    Ok(ids.len())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,6 +187,35 @@ mod tests {
         );
         assert_eq!(r("gpt-50"), None, "prefix must end at a separator");
         assert_eq!(r("mystery"), None);
+    }
+
+    #[test]
+    fn recompute_applies_new_prices_to_history() {
+        let mut c = setup();
+        let e = NewEvent {
+            ts_utc: "2026-10-31T00:00:00Z".into(),
+            app: "x".into(),
+            model: Some("gpt-5".into()),
+            input_tokens: 1_000_000,
+            requests: 1,
+            raw_hash: raw_hash(["r"]),
+            ..Default::default()
+        };
+        upsert_events(&mut c, 1, &[e]).unwrap();
+        c.execute(
+            "INSERT INTO prices (model, effective_from, input_per_mtok, output_per_mtok, source)
+             VALUES ('gpt-5', '2026-01-01T00:00:00Z', 4, 0, 'user')",
+            [],
+        )
+        .unwrap();
+        assert_eq!(recompute_all(&mut c).unwrap(), 1);
+        let (cost, v): (f64, String) = c
+            .query_row("SELECT cost_usd_est, price_version FROM events", [], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .unwrap();
+        assert!((cost - 4.0).abs() < 1e-9);
+        assert_eq!(v, "user");
     }
 
     #[test]
