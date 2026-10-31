@@ -2,8 +2,10 @@
 //!
 //! Everything here runs fully offline; this crate never performs network I/O.
 
+pub mod db;
 pub mod error;
 pub mod logging;
+pub mod migrations;
 
 pub use error::{Error, Result};
 
