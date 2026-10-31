@@ -85,8 +85,8 @@ jobs:
       - run: npm ci
         working-directory: ui
       - name: tauri build
-        run: ui/node_modules/.bin/tauri build
-        shell: bash
+        run: npm run tauri build
+        working-directory: ui
       - uses: actions/upload-artifact@v4
         with:
           name: ai-ledger-${{ matrix.os }}
