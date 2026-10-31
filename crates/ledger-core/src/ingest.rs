@@ -53,6 +53,8 @@ pub struct NewEvent {
     pub cache_write_tokens: u64,
     /// Extended (1-hour) cache writes, priced separately.
     pub cache_write_1h_tokens: u64,
+    /// 12-hour cache writes (OpenAI's extended cache), priced separately.
+    pub cache_write_12h_tokens: u64,
     pub requests: u64,
     pub estimated: bool,
     pub raw_hash: String,
@@ -76,7 +78,7 @@ type StoredRow = (
     Option<String>,
     Option<String>,
     Option<String>,
-    [i64; 6],
+    [i64; 7],
     bool,
 );
 
@@ -93,13 +95,20 @@ fn same(stored: &StoredRow, e: &NewEvent) -> bool {
                 to_i64(e.cache_write_tokens),
                 to_i64(e.requests),
                 to_i64(e.cache_write_1h_tokens),
+                to_i64(e.cache_write_12h_tokens),
             ]
         && *est == e.estimated
 }
 
 fn set_1h(conn: &Connection, id: i64, e: &NewEvent) -> Result<()> {
-    conn.prepare_cached("UPDATE events SET cache_write_1h_tokens = ?2 WHERE id = ?1")?
-        .execute((id, to_i64(e.cache_write_1h_tokens)))?;
+    conn.prepare_cached(
+        "UPDATE events SET cache_write_1h_tokens = ?2, cache_write_12h_tokens = ?3 WHERE id = ?1",
+    )?
+    .execute((
+        id,
+        to_i64(e.cache_write_1h_tokens),
+        to_i64(e.cache_write_12h_tokens),
+    ))?;
     Ok(())
 }
 
@@ -151,7 +160,7 @@ pub fn upsert_events(
             .query_row(
                 "SELECT id, model, project, session_id, input_tokens, output_tokens,
                         cache_read_tokens, cache_write_tokens, requests, cache_write_1h_tokens,
-                        estimated
+                        cache_write_12h_tokens, estimated
                  FROM events WHERE raw_hash = ?1",
                 [&e.raw_hash],
                 |r| {
@@ -167,8 +176,9 @@ pub fn upsert_events(
                             r.get(7)?,
                             r.get(8)?,
                             r.get(9)?,
+                            r.get(10)?,
                         ],
-                        r.get(10)?,
+                        r.get(11)?,
                     ))
                 },
             )
@@ -363,6 +373,22 @@ mod tests {
             .query_row("SELECT cache_write_1h_tokens FROM events", [], |r| r.get(0))
             .unwrap();
         assert_eq!(v, 70);
+    }
+
+    #[test]
+    fn twelve_hour_cache_writes_are_stored_and_compared() {
+        let mut c = setup();
+        let mut e = ev("1", 1);
+        e.cache_write_12h_tokens = 40;
+        upsert_events(&mut c, 1, std::slice::from_ref(&e)).unwrap();
+        e.cache_write_12h_tokens = 90;
+        assert_eq!(upsert_events(&mut c, 1, &[e]).unwrap().updated, 1);
+        let v: i64 = c
+            .query_row("SELECT cache_write_12h_tokens FROM events", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(v, 90);
     }
 
     #[test]

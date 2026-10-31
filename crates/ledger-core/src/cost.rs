@@ -21,6 +21,8 @@ pub struct Rate {
     pub cache_write: f64,
     /// 1-hour cache-write rate; `None` bills those writes at `cache_write`.
     pub cache_write_1h: Option<f64>,
+    /// 12-hour cache-write rate; `None` bills those writes at `cache_write`.
+    pub cache_write_12h: Option<f64>,
     /// `"user"` or the bundled table version.
     pub price_version: String,
     /// Long-context tiers, ascending by threshold.
@@ -35,6 +37,8 @@ pub struct TierRate {
     pub output: f64,
     pub cache_read: f64,
     pub cache_write: f64,
+    /// Long-context 12-hour cache-write rate; `None` falls back to `cache_write`.
+    pub cache_write_12h: Option<f64>,
 }
 
 /// Token counts for one event.
@@ -45,6 +49,7 @@ pub struct Tokens {
     pub cache_read: u64,
     pub cache_write: u64,
     pub cache_write_1h: u64,
+    pub cache_write_12h: u64,
 }
 
 /// USD cost of `t` at `r`.
@@ -57,28 +62,45 @@ pub fn cost(r: &Rate, t: Tokens) -> f64 {
         .input
         .saturating_add(t.cache_read)
         .saturating_add(t.cache_write)
-        .saturating_add(t.cache_write_1h);
-    let (i, o, cr, cw) = r
+        .saturating_add(t.cache_write_1h)
+        .saturating_add(t.cache_write_12h);
+    let (i, o, cr, cw, cw12h) = r
         .tiers
         .iter()
         .rfind(|tier| prompt > tier.above_prompt_tokens)
-        .map_or((r.input, r.output, r.cache_read, r.cache_write), |tier| {
-            (tier.input, tier.output, tier.cache_read, tier.cache_write)
-        });
+        .map_or(
+            (
+                r.input,
+                r.output,
+                r.cache_read,
+                r.cache_write,
+                r.cache_write_12h.unwrap_or(r.cache_write),
+            ),
+            |tier| {
+                (
+                    tier.input,
+                    tier.output,
+                    tier.cache_read,
+                    tier.cache_write,
+                    tier.cache_write_12h.unwrap_or(tier.cache_write),
+                )
+            },
+        );
     // Tiers carry no separate 1-hour rate; the base 1-hour rate applies.
     let cw1h = r.cache_write_1h.unwrap_or(cw);
     (f(t.input) * i
         + f(t.output) * o
         + f(t.cache_read) * cr
         + f(t.cache_write) * cw
-        + f(t.cache_write_1h) * cw1h)
+        + f(t.cache_write_1h) * cw1h
+        + f(t.cache_write_12h) * cw12h)
         / 1_000_000.0
 }
 
 fn tiers(conn: &Connection, model: &str, from: &str, source: &str) -> Result<Vec<TierRate>> {
     let mut st = conn.prepare_cached(
         "SELECT above_prompt_tokens, input_per_mtok, output_per_mtok, cache_read_per_mtok,
-                cache_write_per_mtok
+                cache_write_per_mtok, cache_write_12h_per_mtok
          FROM price_tiers WHERE model = ?1 AND effective_from = ?2 AND source = ?3
          ORDER BY above_prompt_tokens",
     )?;
@@ -89,6 +111,7 @@ fn tiers(conn: &Connection, model: &str, from: &str, source: &str) -> Result<Vec
             output: r.get(2)?,
             cache_read: r.get(3)?,
             cache_write: r.get(4)?,
+            cache_write_12h: r.get(5)?,
         })
     })?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
@@ -125,7 +148,7 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
     let row = conn
         .query_row(
             "SELECT input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok, source,
-                    effective_from, cache_write_1h_per_mtok
+                    effective_from, cache_write_1h_per_mtok, cache_write_12h_per_mtok
              FROM prices WHERE model = ?1 AND effective_from <= ?2
              ORDER BY effective_from DESC, source = 'user' DESC LIMIT 1",
             (&canon, ts_utc),
@@ -138,17 +161,29 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
                     r.get::<_, String>(4)?,
                     r.get::<_, String>(5)?,
                     r.get::<_, Option<f64>>(6)?,
+                    r.get::<_, Option<f64>>(7)?,
                 ))
             },
         )
         .optional()?;
-    let Some((input, output, cache_read, cache_write, source, from, cache_write_1h)) = row else {
+    let Some((
+        input,
+        output,
+        cache_read,
+        cache_write,
+        source,
+        from,
+        cache_write_1h,
+        cache_write_12h,
+    )) = row
+    else {
         return Ok(None);
     };
     let tiers = tiers(conn, &canon, &from, &source)?;
     Ok(Some(Rate {
         tiers,
         cache_write_1h,
+        cache_write_12h,
         model: canon,
         input,
         output,
@@ -166,7 +201,7 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
 pub fn price_event(conn: &Connection, event_id: i64) -> Result<()> {
     let (model, ts, t): (Option<String>, String, Tokens) = conn.query_row(
         "SELECT model, ts_utc, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
-                cache_write_1h_tokens
+                cache_write_1h_tokens, cache_write_12h_tokens
          FROM events WHERE id = ?1",
         [event_id],
         |r| {
@@ -180,6 +215,7 @@ pub fn price_event(conn: &Connection, event_id: i64) -> Result<()> {
                     cache_read: n(4)?,
                     cache_write: n(5)?,
                     cache_write_1h: n(6)?,
+                    cache_write_12h: n(7)?,
                 },
             ))
         },
@@ -371,6 +407,42 @@ mod tests {
     }
 
     #[test]
+    fn twelve_hour_cache_writes_use_their_own_rates() {
+        let rate = Rate {
+            model: "m".into(),
+            input: 2.0,
+            output: 10.0,
+            cache_read: 0.2,
+            cache_write: 2.5,
+            cache_write_1h: None,
+            cache_write_12h: Some(5.0),
+            price_version: "v".into(),
+            tiers: vec![TierRate {
+                above_prompt_tokens: 272_000,
+                input: 4.0,
+                output: 15.0,
+                cache_read: 0.4,
+                cache_write: 5.0,
+                cache_write_12h: Some(10.0),
+            }],
+        };
+        let short = Tokens {
+            cache_write_12h: 100_000,
+            ..Tokens::default()
+        };
+        assert!((cost(&rate, short) - 0.5).abs() < 1e-9);
+        let long = Tokens {
+            cache_write_12h: 300_000,
+            ..Tokens::default()
+        };
+        assert!((cost(&rate, long) - 3.0).abs() < 1e-9, "tier 12h rate");
+        let mut flat = rate.clone();
+        flat.cache_write_12h = None;
+        flat.tiers.clear();
+        assert!((cost(&flat, short) - 0.25).abs() < 1e-9, "falls back");
+    }
+
+    #[test]
     fn cost_math() {
         let rate = Rate {
             model: "m".into(),
@@ -381,6 +453,7 @@ mod tests {
             price_version: "v".into(),
             tiers: vec![],
             cache_write_1h: None,
+            cache_write_12h: None,
         };
         let t = Tokens {
             input: 1_000_000,
@@ -388,6 +461,7 @@ mod tests {
             cache_read: 2_000_000,
             cache_write: 0,
             cache_write_1h: 0,
+            cache_write_12h: 0,
         };
         assert!((cost(&rate, t) - (3.0 + 1.5 + 0.6)).abs() < 1e-9);
     }
