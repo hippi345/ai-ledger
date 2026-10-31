@@ -19,6 +19,8 @@ pub struct Rate {
     pub output: f64,
     pub cache_read: f64,
     pub cache_write: f64,
+    /// 1-hour cache-write rate; `None` bills those writes at `cache_write`.
+    pub cache_write_1h: Option<f64>,
     /// `"user"` or the bundled table version.
     pub price_version: String,
     /// Long-context tiers, ascending by threshold.
@@ -42,6 +44,7 @@ pub struct Tokens {
     pub output: u64,
     pub cache_read: u64,
     pub cache_write: u64,
+    pub cache_write_1h: u64,
 }
 
 /// USD cost of `t` at `r`.
@@ -53,7 +56,8 @@ pub fn cost(r: &Rate, t: Tokens) -> f64 {
     let prompt = t
         .input
         .saturating_add(t.cache_read)
-        .saturating_add(t.cache_write);
+        .saturating_add(t.cache_write)
+        .saturating_add(t.cache_write_1h);
     let (i, o, cr, cw) = r
         .tiers
         .iter()
@@ -61,7 +65,14 @@ pub fn cost(r: &Rate, t: Tokens) -> f64 {
         .map_or((r.input, r.output, r.cache_read, r.cache_write), |tier| {
             (tier.input, tier.output, tier.cache_read, tier.cache_write)
         });
-    (f(t.input) * i + f(t.output) * o + f(t.cache_read) * cr + f(t.cache_write) * cw) / 1_000_000.0
+    // Tiers carry no separate 1-hour rate; the base 1-hour rate applies.
+    let cw1h = r.cache_write_1h.unwrap_or(cw);
+    (f(t.input) * i
+        + f(t.output) * o
+        + f(t.cache_read) * cr
+        + f(t.cache_write) * cw
+        + f(t.cache_write_1h) * cw1h)
+        / 1_000_000.0
 }
 
 fn tiers(conn: &Connection, model: &str, from: &str, source: &str) -> Result<Vec<TierRate>> {
@@ -114,7 +125,7 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
     let row = conn
         .query_row(
             "SELECT input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok, source,
-                    effective_from
+                    effective_from, cache_write_1h_per_mtok
              FROM prices WHERE model = ?1 AND effective_from <= ?2
              ORDER BY effective_from DESC, source = 'user' DESC LIMIT 1",
             (&canon, ts_utc),
@@ -126,16 +137,18 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
                     r.get::<_, f64>(3)?,
                     r.get::<_, String>(4)?,
                     r.get::<_, String>(5)?,
+                    r.get::<_, Option<f64>>(6)?,
                 ))
             },
         )
         .optional()?;
-    let Some((input, output, cache_read, cache_write, source, from)) = row else {
+    let Some((input, output, cache_read, cache_write, source, from, cache_write_1h)) = row else {
         return Ok(None);
     };
     let tiers = tiers(conn, &canon, &from, &source)?;
     Ok(Some(Rate {
         tiers,
+        cache_write_1h,
         model: canon,
         input,
         output,
@@ -152,7 +165,8 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
 /// Computes and stores `cost_usd_est` / `price_version` for one event.
 pub fn price_event(conn: &Connection, event_id: i64) -> Result<()> {
     let (model, ts, t): (Option<String>, String, Tokens) = conn.query_row(
-        "SELECT model, ts_utc, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens
+        "SELECT model, ts_utc, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+                cache_write_1h_tokens
          FROM events WHERE id = ?1",
         [event_id],
         |r| {
@@ -165,6 +179,7 @@ pub fn price_event(conn: &Connection, event_id: i64) -> Result<()> {
                     output: n(3)?,
                     cache_read: n(4)?,
                     cache_write: n(5)?,
+                    cache_write_1h: n(6)?,
                 },
             ))
         },
@@ -306,6 +321,25 @@ mod tests {
     }
 
     #[test]
+    fn one_hour_cache_writes_use_their_own_rate() {
+        let c = setup();
+        let r = rate_at(&c, "claude-sonnet-4-5", "2026-10-31T00:00:00Z")
+            .unwrap()
+            .unwrap();
+        assert_eq!(r.cache_write_1h, Some(6.0));
+        let t = Tokens {
+            cache_write: 1_000_000,
+            cache_write_1h: 1_000_000,
+            ..Tokens::default()
+        };
+        assert!((cost(&r, t) - (3.75 + 6.0)).abs() < 1e-9);
+        let g = rate_at(&c, "gpt-5", "2026-10-31T00:00:00Z")
+            .unwrap()
+            .unwrap();
+        assert_eq!(g.cache_write_1h, None);
+    }
+
+    #[test]
     fn cost_math() {
         let rate = Rate {
             model: "m".into(),
@@ -315,12 +349,14 @@ mod tests {
             cache_write: 3.75,
             price_version: "v".into(),
             tiers: vec![],
+            cache_write_1h: None,
         };
         let t = Tokens {
             input: 1_000_000,
             output: 100_000,
             cache_read: 2_000_000,
             cache_write: 0,
+            cache_write_1h: 0,
         };
         assert!((cost(&rate, t) - (3.0 + 1.5 + 0.6)).abs() < 1e-9);
     }

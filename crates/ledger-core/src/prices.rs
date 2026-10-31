@@ -37,6 +37,9 @@ pub struct ModelPrice {
     pub cache_read: f64,
     #[serde(default)]
     pub cache_write: f64,
+    /// Rate for extended (1-hour) cache writes, when the vendor offers them.
+    #[serde(default)]
+    pub cache_write_1h: Option<f64>,
     /// Higher rates for long prompts, e.g. Gemini 2.5 Pro above 200k tokens.
     #[serde(default)]
     pub long_context: Vec<LongContextRate>,
@@ -63,6 +66,7 @@ pub fn parse(json: &str) -> Result<PriceFile> {
     let mut names = std::collections::HashSet::new();
     for m in &f.models {
         let mut rates = vec![m.input, m.output, m.cache_read, m.cache_write];
+        rates.extend(m.cache_write_1h);
         for t in &m.long_context {
             if t.above_prompt_tokens == 0 {
                 return Err(Error::InvalidInput(format!(
@@ -108,8 +112,8 @@ pub fn sync(conn: &mut Connection, file: &PriceFile) -> Result<bool> {
     for m in &file.models {
         tx.execute(
             "INSERT INTO prices (model, effective_from, input_per_mtok, output_per_mtok,
-                 cache_read_per_mtok, cache_write_per_mtok, source)
-             VALUES (?1, ?2 || 'T00:00:00Z', ?3, ?4, ?5, ?6, 'bundled')",
+                 cache_read_per_mtok, cache_write_per_mtok, cache_write_1h_per_mtok, source)
+             VALUES (?1, ?2 || 'T00:00:00Z', ?3, ?4, ?5, ?6, ?7, 'bundled')",
             (
                 &m.model,
                 &m.effective_from,
@@ -117,6 +121,7 @@ pub fn sync(conn: &mut Connection, file: &PriceFile) -> Result<bool> {
                 m.output,
                 m.cache_read,
                 m.cache_write,
+                m.cache_write_1h,
             ),
         )?;
         for t in &m.long_context {
@@ -278,6 +283,25 @@ mod tests {
         let bad = r#"{"version":"v","models":[{"model":"m","effective_from":"2026-01-01","input":1,"output":1,
             "long_context":[{"above_prompt_tokens":0,"input":1,"output":1}]}]}"#;
         assert!(parse(bad).is_err());
+    }
+
+    /// Anthropic bills 1-hour cache writes at 2x the input rate
+    /// (https://platform.claude.com/docs/en/about-claude/pricing, checked 2026-10-31).
+    #[test]
+    fn anthropic_1h_cache_writes_are_twice_input() {
+        let all = bundled().unwrap().models;
+        let claude: Vec<_> = all
+            .iter()
+            .filter(|m| m.model.starts_with("claude-"))
+            .collect();
+        assert!(!claude.is_empty());
+        for m in claude {
+            assert_eq!(m.cache_write_1h, Some(m.input * 2.0), "{}", m.model);
+        }
+        assert!(all
+            .iter()
+            .filter(|m| !m.model.starts_with("claude-"))
+            .all(|m| m.cache_write_1h.is_none()));
     }
 
     #[test]
