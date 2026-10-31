@@ -17,11 +17,18 @@ pub struct Migration {
 }
 
 /// All migrations, ordered by version.
-pub const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "core_schema",
-    sql: include_str!("../migrations/0001_core_schema.sql"),
-}];
+pub const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "core_schema",
+        sql: include_str!("../migrations/0001_core_schema.sql"),
+    },
+    Migration {
+        version: 2,
+        name: "settings",
+        sql: include_str!("../migrations/0002_settings.sql"),
+    },
+];
 
 /// Highest version known to this build (0 when there are none).
 pub fn latest_version() -> u32 {
