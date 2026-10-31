@@ -14,6 +14,7 @@ pub mod prices;
 pub mod reader;
 pub mod retention;
 pub mod settings;
+pub mod sources;
 
 pub use error::{Error, Result};
 
