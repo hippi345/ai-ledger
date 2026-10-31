@@ -178,6 +178,9 @@ mod tests {
             "falls back to composer createdAt"
         );
         assert!(ev[2].model.is_none());
+        assert!(!ev[0].estimated && !ev[1].estimated);
+        assert!(ev[2].estimated, "no tokenCount, so tokens are estimated");
+        assert_eq!((ev[2].input_tokens, ev[2].output_tokens), (0, 3));
         assert_eq!(cur.0, "1793534460000");
         assert!(ev.iter().all(|e| e.app == "cursor" && e.requests == 1));
     }
