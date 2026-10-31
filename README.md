@@ -33,3 +33,12 @@ cargo test --workspace
 ## License
 
 MIT © 2026 Joel Shearon
+
+### Running the app
+
+Requires Node 20+ and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/).
+
+```sh
+npm --prefix ui ci
+ui/node_modules/.bin/tauri dev   # from the repo root
+```
