@@ -33,6 +33,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "prices",
         sql: include_str!("../migrations/0003_prices.sql"),
     },
+    Migration {
+        version: 4,
+        name: "price_tiers",
+        sql: include_str!("../migrations/0004_price_tiers.sql"),
+    },
 ];
 
 /// Highest version known to this build (0 when there are none).

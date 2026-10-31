@@ -21,6 +21,18 @@ pub struct Rate {
     pub cache_write: f64,
     /// `"user"` or the bundled table version.
     pub price_version: String,
+    /// Long-context tiers, ascending by threshold.
+    pub tiers: Vec<TierRate>,
+}
+
+/// Rates that replace the base rates when the prompt exceeds `above_prompt_tokens`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TierRate {
+    pub above_prompt_tokens: u64,
+    pub input: f64,
+    pub output: f64,
+    pub cache_read: f64,
+    pub cache_write: f64,
 }
 
 /// Token counts for one event.
@@ -33,14 +45,42 @@ pub struct Tokens {
 }
 
 /// USD cost of `t` at `r`.
+/// The whole request is billed at the highest tier whose threshold the
+/// prompt (input + cache read + cache write) exceeds, as vendors bill it.
 pub fn cost(r: &Rate, t: Tokens) -> f64 {
     #[allow(clippy::cast_precision_loss)]
     let f = |n: u64| n as f64;
-    (f(t.input) * r.input
-        + f(t.output) * r.output
-        + f(t.cache_read) * r.cache_read
-        + f(t.cache_write) * r.cache_write)
-        / 1_000_000.0
+    let prompt = t
+        .input
+        .saturating_add(t.cache_read)
+        .saturating_add(t.cache_write);
+    let (i, o, cr, cw) = r
+        .tiers
+        .iter()
+        .rfind(|tier| prompt > tier.above_prompt_tokens)
+        .map_or((r.input, r.output, r.cache_read, r.cache_write), |tier| {
+            (tier.input, tier.output, tier.cache_read, tier.cache_write)
+        });
+    (f(t.input) * i + f(t.output) * o + f(t.cache_read) * cr + f(t.cache_write) * cw) / 1_000_000.0
+}
+
+fn tiers(conn: &Connection, model: &str, from: &str, source: &str) -> Result<Vec<TierRate>> {
+    let mut st = conn.prepare_cached(
+        "SELECT above_prompt_tokens, input_per_mtok, output_per_mtok, cache_read_per_mtok,
+                cache_write_per_mtok
+         FROM price_tiers WHERE model = ?1 AND effective_from = ?2 AND source = ?3
+         ORDER BY above_prompt_tokens",
+    )?;
+    let rows = st.query_map((model, from, source), |r| {
+        Ok(TierRate {
+            above_prompt_tokens: u64::try_from(r.get::<_, i64>(0)?).unwrap_or(0),
+            input: r.get(1)?,
+            output: r.get(2)?,
+            cache_read: r.get(3)?,
+            cache_write: r.get(4)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
 /// Canonical priced model for `name`, if any.
@@ -73,7 +113,8 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
     let bundled_version: Option<String> = settings::get_or(conn, prices::LOADED_VERSION_KEY, None)?;
     let row = conn
         .query_row(
-            "SELECT input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok, source
+            "SELECT input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok, source,
+                    effective_from
              FROM prices WHERE model = ?1 AND effective_from <= ?2
              ORDER BY effective_from DESC, source = 'user' DESC LIMIT 1",
             (&canon, ts_utc),
@@ -84,24 +125,28 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
                     r.get::<_, f64>(2)?,
                     r.get::<_, f64>(3)?,
                     r.get::<_, String>(4)?,
+                    r.get::<_, String>(5)?,
                 ))
             },
         )
         .optional()?;
-    Ok(
-        row.map(|(input, output, cache_read, cache_write, source)| Rate {
-            model: canon,
-            input,
-            output,
-            cache_read,
-            cache_write,
-            price_version: if source == "user" {
-                "user".into()
-            } else {
-                bundled_version.clone().unwrap_or_else(|| "bundled".into())
-            },
-        }),
-    )
+    let Some((input, output, cache_read, cache_write, source, from)) = row else {
+        return Ok(None);
+    };
+    let tiers = tiers(conn, &canon, &from, &source)?;
+    Ok(Some(Rate {
+        tiers,
+        model: canon,
+        input,
+        output,
+        cache_read,
+        cache_write,
+        price_version: if source == "user" {
+            "user".into()
+        } else {
+            bundled_version.clone().unwrap_or_else(|| "bundled".into())
+        },
+    }))
 }
 
 /// Computes and stores `cost_usd_est` / `price_version` for one event.
@@ -226,6 +271,41 @@ mod tests {
     }
 
     #[test]
+    fn long_context_tier_bills_whole_request() {
+        let c = setup();
+        let r = rate_at(&c, "gemini-2.5-pro", "2026-10-31T00:00:00Z")
+            .unwrap()
+            .unwrap();
+        let short = Tokens {
+            input: 200_000,
+            output: 1_000_000,
+            ..Tokens::default()
+        };
+        assert!(
+            (cost(&r, short) - (0.25 + 10.0)).abs() < 1e-9,
+            "at threshold: base rates"
+        );
+        let long = Tokens {
+            input: 300_000,
+            output: 1_000_000,
+            ..Tokens::default()
+        };
+        assert!(
+            (cost(&r, long) - (0.75 + 15.0)).abs() < 1e-9,
+            "above: tier rates"
+        );
+        let cached = Tokens {
+            input: 1,
+            cache_read: 250_000,
+            ..Tokens::default()
+        };
+        assert!(
+            cost(&r, cached) > 0.25 * 0.25 - 1e-9,
+            "cache tokens count toward the prompt"
+        );
+    }
+
+    #[test]
     fn cost_math() {
         let rate = Rate {
             model: "m".into(),
@@ -234,6 +314,7 @@ mod tests {
             cache_read: 0.3,
             cache_write: 3.75,
             price_version: "v".into(),
+            tiers: vec![],
         };
         let t = Tokens {
             input: 1_000_000,
