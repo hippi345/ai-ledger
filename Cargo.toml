@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/ledger-core", "crates/readers/cursor", "crates/readers/claude_code", "crates/readers/csv_import"]
+members = ["crates/ledger-core", "crates/readers/cursor", "crates/readers/claude_code", "crates/readers/csv_import", "src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
