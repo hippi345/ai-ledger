@@ -9,6 +9,7 @@ pub mod ingest;
 pub mod logging;
 pub mod manual;
 pub mod migrations;
+pub mod prices;
 pub mod reader;
 pub mod retention;
 pub mod settings;
