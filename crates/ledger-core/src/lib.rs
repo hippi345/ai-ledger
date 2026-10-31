@@ -8,6 +8,7 @@ pub mod error;
 pub mod ingest;
 pub mod logging;
 pub mod migrations;
+pub mod retention;
 pub mod settings;
 
 pub use error::{Error, Result};
