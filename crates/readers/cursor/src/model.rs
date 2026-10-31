@@ -62,7 +62,30 @@ pub struct Bubble {
     pub model_info: Option<ModelName>,
     pub token_count: Option<TokenCount>,
     pub tool_former_data: Option<ToolData>,
+    /// Only the *length* of the message text is kept, for token estimation.
+    pub text: TextLen,
     pub timing_info: Option<Timing>,
+}
+
+/// Character count of a text field. The text itself is dropped during
+/// deserialization and never stored.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct TextLen(pub usize);
+
+impl<'de> Deserialize<'de> for TextLen {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s: Option<String> = Option::deserialize(d)?;
+        Ok(TextLen(s.map_or(0, |s| s.chars().count())))
+    }
+}
+
+/// Rough chars-to-tokens heuristic (~4 characters per token, rounded up).
+/// Used only when Cursor did not record token counts; such events are
+/// flagged `estimated`.
+pub const CHARS_PER_TOKEN: usize = 4;
+
+pub fn estimate_tokens(chars: usize) -> u64 {
+    u64::try_from(chars.div_ceil(CHARS_PER_TOKEN)).unwrap_or(u64::MAX)
 }
 
 /// Tool invocation metadata on an assistant bubble. Arguments and results are
@@ -173,15 +196,26 @@ pub fn composer_events(
 ) -> Vec<NewEvent> {
     let fallback_ts = iso_from_ms(c.created_at.or(c.last_updated_at).unwrap_or(0));
     let mut out = Vec::new();
-    for h in c
-        .full_conversation_headers_only
-        .iter()
-        .filter(|h| h.kind == ASSISTANT)
-    {
+    // Characters of conversation the model has seen so far (for estimation).
+    let mut context_chars = 0usize;
+    for h in &c.full_conversation_headers_only {
         let bubble: Bubble = lookup(&h.bubble_id)
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default();
-        let tokens = bubble.token_count.unwrap_or_default();
+        let own_chars = bubble.text.0;
+        if h.kind != ASSISTANT {
+            context_chars += own_chars;
+            continue;
+        }
+        let reported = bubble
+            .token_count
+            .filter(|t| t.input_tokens > 0 || t.output_tokens > 0);
+        let estimated = reported.is_none();
+        let (input_tokens, output_tokens) = match reported {
+            Some(t) => (t.input_tokens, t.output_tokens),
+            None => (estimate_tokens(context_chars), estimate_tokens(own_chars)),
+        };
+        context_chars += own_chars;
         let model = bubble
             .model_info
             .and_then(|m| m.model_name)
@@ -200,9 +234,10 @@ pub fn composer_events(
             app: APP.into(),
             model,
             session_id: Some(c.composer_id.clone()),
-            input_tokens: tokens.input_tokens,
-            output_tokens: tokens.output_tokens,
+            input_tokens,
+            output_tokens,
             requests: 1,
+            estimated,
             raw_hash: raw_hash([APP, &c.composer_id, &h.bubble_id]),
             ..Default::default()
         });
@@ -243,6 +278,39 @@ mod tests {
             (t.mcp_server.as_deref(), t.tool.as_str(), t.ok),
             (Some("my_srv"), "b", true)
         );
+    }
+
+    #[test]
+    fn estimates_when_tokens_missing() {
+        let c: Composer = serde_json::from_str(
+            r#"{"composerId":"e","createdAt":0,"fullConversationHeadersOnly":[
+                {"bubbleId":"u","type":1},{"bubbleId":"a","type":2},
+                {"bubbleId":"u2","type":1},{"bubbleId":"a2","type":2}]}"#,
+        )
+        .unwrap();
+        let bubbles = std::collections::HashMap::from([
+            ("u", r#"{"type":1,"text":"0123456789"}"#),
+            (
+                "a",
+                r#"{"type":2,"text":"abcdef","tokenCount":{"inputTokens":0,"outputTokens":0}}"#,
+            ),
+            ("u2", r#"{"type":1,"text":"xy"}"#),
+            (
+                "a2",
+                r#"{"type":2,"tokenCount":{"inputTokens":7,"outputTokens":1}}"#,
+            ),
+        ]);
+        let ev = composer_events(&c, None, |id| bubbles.get(id).map(|s| s.to_string()));
+        assert_eq!(ev.len(), 2);
+        assert!(ev[0].estimated);
+        assert_eq!(
+            (ev[0].input_tokens, ev[0].output_tokens),
+            (3, 2),
+            "10 chars ctx, 6 chars out"
+        );
+        assert!(!ev[1].estimated, "reported counts are used as-is");
+        assert_eq!((ev[1].input_tokens, ev[1].output_tokens), (7, 1));
+        assert_eq!(estimate_tokens(0), 0);
     }
 
     #[test]
