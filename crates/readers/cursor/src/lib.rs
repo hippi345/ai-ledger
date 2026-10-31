@@ -2,6 +2,7 @@
 
 pub mod model;
 pub mod paths;
+pub mod projects;
 pub mod reader;
 pub mod snapshot;
 
