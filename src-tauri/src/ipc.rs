@@ -46,6 +46,10 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::commands::settings::set_setting,
             crate::commands::settings::reset_setting,
             crate::commands::settings::list_settings,
+            crate::commands::sources::list_sources,
+            crate::commands::sources::detect_sources,
+            crate::commands::sources::add_source,
+            crate::commands::sources::set_source_enabled,
         ])
 }
 

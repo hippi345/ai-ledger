@@ -28,6 +28,9 @@ name = "ai-ledger"
 version = "0.1.0"
 dependencies = [
  "ledger-core",
+ "reader-claude-code",
+ "reader-csv-import",
+ "reader-cursor",
  "rusqlite",
  "serde",
  "serde_json",
