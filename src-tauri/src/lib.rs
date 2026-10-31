@@ -1,5 +1,7 @@
 //! Tauri shell for AI Ledger.
 
+pub mod commands;
+pub mod error;
 pub mod ipc;
 pub mod state;
 
