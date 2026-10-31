@@ -49,7 +49,10 @@ pub struct NewEvent {
     pub input_tokens: u64,
     pub output_tokens: u64,
     pub cache_read_tokens: u64,
+    /// Standard (5-minute) cache writes.
     pub cache_write_tokens: u64,
+    /// Extended (1-hour) cache writes, priced separately.
+    pub cache_write_1h_tokens: u64,
     pub requests: u64,
     pub estimated: bool,
     pub raw_hash: String,
@@ -73,7 +76,7 @@ type StoredRow = (
     Option<String>,
     Option<String>,
     Option<String>,
-    [i64; 5],
+    [i64; 6],
     bool,
 );
 
@@ -89,8 +92,15 @@ fn same(stored: &StoredRow, e: &NewEvent) -> bool {
                 to_i64(e.cache_read_tokens),
                 to_i64(e.cache_write_tokens),
                 to_i64(e.requests),
+                to_i64(e.cache_write_1h_tokens),
             ]
         && *est == e.estimated
+}
+
+fn set_1h(conn: &Connection, id: i64, e: &NewEvent) -> Result<()> {
+    conn.prepare_cached("UPDATE events SET cache_write_1h_tokens = ?2 WHERE id = ?1")?
+        .execute((id, to_i64(e.cache_write_1h_tokens)))?;
+    Ok(())
 }
 
 fn insert_tool_calls(conn: &Connection, event_id: i64, calls: &[NewToolCall]) -> Result<()> {
@@ -140,7 +150,8 @@ pub fn upsert_events(
         let stored: Option<StoredRow> = tx
             .query_row(
                 "SELECT id, model, project, session_id, input_tokens, output_tokens,
-                        cache_read_tokens, cache_write_tokens, requests, estimated
+                        cache_read_tokens, cache_write_tokens, requests, cache_write_1h_tokens,
+                        estimated
                  FROM events WHERE raw_hash = ?1",
                 [&e.raw_hash],
                 |r| {
@@ -149,8 +160,15 @@ pub fn upsert_events(
                         r.get(1)?,
                         r.get(2)?,
                         r.get(3)?,
-                        [r.get(4)?, r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?],
-                        r.get(9)?,
+                        [
+                            r.get(4)?,
+                            r.get(5)?,
+                            r.get(6)?,
+                            r.get(7)?,
+                            r.get(8)?,
+                            r.get(9)?,
+                        ],
+                        r.get(10)?,
                     ))
                 },
             )
@@ -180,6 +198,7 @@ pub fn upsert_events(
                      WHERE raw_hash=?12",
                     params,
                 )?;
+                set_1h(&tx, row.0, e)?;
                 tx.execute("DELETE FROM tool_calls WHERE event_id = ?1", [row.0])?;
                 insert_tool_calls(&tx, row.0, &e.tool_calls)?;
                 crate::cost::price_event(&tx, row.0)?;
@@ -197,6 +216,7 @@ pub fn upsert_events(
                     ),
                 )?;
                 let id = tx.last_insert_rowid();
+                set_1h(&tx, id, e)?;
                 insert_tool_calls(&tx, id, &e.tool_calls)?;
                 crate::cost::price_event(&tx, id)?;
                 stats.inserted += 1;
@@ -323,6 +343,26 @@ mod tests {
         assert_eq!(row.1, "2026-10-31T12:05:00Z");
         assert_eq!(row.2.as_deref(), Some("ai-ledger"));
         assert_eq!(count(&c, "sessions"), 1);
+    }
+
+    #[test]
+    fn one_hour_cache_writes_are_stored_and_compared() {
+        let mut c = setup();
+        let mut e = ev("1", 1);
+        e.cache_write_1h_tokens = 50;
+        upsert_events(&mut c, 1, std::slice::from_ref(&e)).unwrap();
+        assert_eq!(
+            upsert_events(&mut c, 1, std::slice::from_ref(&e))
+                .unwrap()
+                .unchanged,
+            1
+        );
+        e.cache_write_1h_tokens = 70;
+        assert_eq!(upsert_events(&mut c, 1, &[e]).unwrap().updated, 1);
+        let v: i64 = c
+            .query_row("SELECT cache_write_1h_tokens FROM events", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(v, 70);
     }
 
     #[test]
