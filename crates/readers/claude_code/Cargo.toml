@@ -1,0 +1,21 @@
+[package]
+name = "reader-claude-code"
+description = "AI Ledger reader for Claude Code's local JSONL transcripts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ledger-core = { path = "../../ledger-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
