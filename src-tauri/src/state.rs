@@ -34,8 +34,14 @@ impl AppState {
 
     /// Wraps an already-open connection (tests).
     pub fn from_connection(conn: Connection) -> Self {
+        Self::with_registry(conn, default_registry())
+    }
+
+    /// Wraps a connection with a custom reader registry (tests).
+    pub fn with_registry(conn: Connection, registry: Registry) -> Self {
         Self {
             conn: Mutex::new(conn),
+            registry: Mutex::new(registry),
         }
     }
 
