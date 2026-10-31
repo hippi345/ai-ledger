@@ -150,6 +150,22 @@ mod tests {
         assert_eq!((bundled_rows, user_rows), (1, 1));
     }
 
+    fn find(model: &str) -> ModelPrice {
+        bundled()
+            .unwrap()
+            .models
+            .into_iter()
+            .find(|m| m.model == model)
+            .unwrap()
+    }
+
+    /// Values from https://ai.google.dev/gemini-api/docs/pricing (checked 2026-10-31).
+    #[test]
+    fn gemini_cache_read_rates() {
+        assert_eq!(find("gemini-2.5-pro").cache_read, 0.125);
+        assert_eq!(find("gemini-2.5-flash").cache_read, 0.03);
+    }
+
     #[test]
     fn rejects_bad_files() {
         assert!(parse(r#"{"version":"","models":[]}"#).is_err());
