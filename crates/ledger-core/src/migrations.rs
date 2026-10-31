@@ -17,7 +17,11 @@ pub struct Migration {
 }
 
 /// All migrations, ordered by version.
-pub const MIGRATIONS: &[Migration] = &[];
+pub const MIGRATIONS: &[Migration] = &[Migration {
+    version: 1,
+    name: "core_schema",
+    sql: include_str!("../migrations/0001_core_schema.sql"),
+}];
 
 /// Highest version known to this build (0 when there are none).
 pub fn latest_version() -> u32 {
@@ -132,6 +136,64 @@ mod tests {
             )
             .unwrap();
         assert_eq!(n, 0);
+    }
+
+    fn tables(c: &Connection) -> Vec<String> {
+        let mut st = c
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            .unwrap();
+        st.query_map([], |r| r.get(0))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn v1_creates_core_tables() {
+        let mut c = Connection::open_in_memory().unwrap();
+        run(&mut c).unwrap();
+        let t = tables(&c);
+        for name in ["events", "sessions", "sources", "tool_calls"] {
+            assert!(t.contains(&name.to_string()), "missing {name}");
+        }
+    }
+
+    #[test]
+    fn v1_constraints_hold() {
+        let mut c = Connection::open_in_memory().unwrap();
+        c.pragma_update(None, "foreign_keys", "ON").unwrap();
+        run(&mut c).unwrap();
+        c.execute(
+            "INSERT INTO sources (reader_id, tier) VALUES ('cursor', 1)",
+            [],
+        )
+        .unwrap();
+        let ins = "INSERT INTO events (source_id, ts_utc, app, input_tokens, raw_hash) \
+                   VALUES (?1, '2026-10-31T00:00:00Z', 'cursor', ?2, ?3)";
+        c.execute(ins, (1, 10, "h1")).unwrap();
+        assert!(
+            c.execute(ins, (1, 10, "h1")).is_err(),
+            "raw_hash must be unique"
+        );
+        assert!(
+            c.execute(ins, (1, -1, "h2")).is_err(),
+            "tokens must be >= 0"
+        );
+        assert!(c.execute(ins, (99, 1, "h3")).is_err(), "source must exist");
+        assert!(c
+            .execute("INSERT INTO sources (reader_id, tier) VALUES ('x', 4)", [])
+            .is_err());
+        c.execute(
+            "INSERT INTO tool_calls (event_id, ts_utc, tool, mcp_server) \
+             VALUES (1, '2026-10-31T00:00:00Z', 'read_file', NULL)",
+            [],
+        )
+        .unwrap();
+        c.execute("DELETE FROM sources", []).unwrap();
+        let n: i64 = c
+            .query_row("SELECT COUNT(*) FROM tool_calls", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 0, "deleting a source cascades to events and tool calls");
     }
 
     #[test]
