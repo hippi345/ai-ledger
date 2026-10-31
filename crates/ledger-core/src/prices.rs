@@ -166,6 +166,23 @@ mod tests {
         assert_eq!(find("gemini-2.5-flash").cache_read, 0.03);
     }
 
+    /// Values from https://platform.claude.com/docs/en/about-claude/pricing
+    /// (checked 2026-10-31); cache_write is the 5-minute rate.
+    #[test]
+    fn anthropic_current_models() {
+        let rates = |m: &str| {
+            let p = find(m);
+            (p.input, p.output, p.cache_read, p.cache_write)
+        };
+        assert_eq!(rates("claude-opus-4-8"), (5.0, 25.0, 0.5, 6.25));
+        assert_eq!(rates("claude-opus-5-5"), (4.0, 20.0, 0.2, 5.0));
+        assert_eq!(rates("claude-sonnet-5-5"), (2.0, 10.0, 0.1, 2.5));
+        assert_eq!(rates("claude-haiku-5-5"), (0.1, 0.5, 0.01, 0.125));
+        assert_eq!(rates("claude-mythos-5-1"), (10.0, 50.0, 0.25, 12.5));
+        assert_eq!(rates("claude-opus-4"), rates("claude-opus-4-1"));
+        assert_eq!(rates("claude-haiku-3-5"), (0.8, 4.0, 0.08, 1.0));
+    }
+
     #[test]
     fn rejects_bad_files() {
         assert!(parse(r#"{"version":"","models":[]}"#).is_err());
