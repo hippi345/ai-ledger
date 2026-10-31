@@ -10,9 +10,10 @@ rust-version.workspace = true
 
 [dependencies]
 ledger-core = { path = "../../ledger-core" }
-
-[dev-dependencies]
+rusqlite = { version = "0.37", features = ["bundled"] }
 tempfile = "3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [lints]
 workspace = true

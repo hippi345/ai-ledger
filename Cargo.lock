@@ -276,6 +276,9 @@ name = "reader-cursor"
 version = "0.1.0"
 dependencies = [
  "ledger-core",
+ "rusqlite",
+ "serde",
+ "serde_json",
  "tempfile",
 ]
 
