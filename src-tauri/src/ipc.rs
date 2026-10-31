@@ -36,7 +36,13 @@ pub fn app_info() -> AppInfo {
 
 /// The command/event registry shared by the app and the bindings export.
 pub fn builder() -> Builder<tauri::Wry> {
-    Builder::<tauri::Wry>::new().commands(collect_commands![app_info])
+    Builder::<tauri::Wry>::new().commands(collect_commands![
+        app_info,
+        crate::commands::settings::get_setting,
+        crate::commands::settings::set_setting,
+        crate::commands::settings::reset_setting,
+        crate::commands::settings::list_settings,
+    ])
 }
 
 /// Writes TypeScript bindings for [`builder`] to `path`.
