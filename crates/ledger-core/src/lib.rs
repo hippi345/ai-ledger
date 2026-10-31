@@ -2,6 +2,11 @@
 //!
 //! Everything here runs fully offline; this crate never performs network I/O.
 
+pub mod error;
+pub mod logging;
+
+pub use error::{Error, Result};
+
 /// Crate version, surfaced in the app's About box and backups.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
