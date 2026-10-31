@@ -390,7 +390,7 @@ mod tests {
 
     /// Vendors whose placeholder dates (2025-01-01) were replaced by launch
     /// dates, which are marked as estimates.
-    const DATED_VENDORS: &[&str] = &["claude-"];
+    const DATED_VENDORS: &[&str] = &["claude-", "gpt-", "o3"];
 
     #[test]
     fn launch_dates_replace_placeholders() {
