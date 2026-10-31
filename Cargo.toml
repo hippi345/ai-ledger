@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["crates/ledger-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Joel Shearon"]
+repository = "https://github.com/hippi345/ai-ledger"
+rust-version = "1.80"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unwrap_used = "warn"
