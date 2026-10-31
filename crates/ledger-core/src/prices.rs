@@ -200,7 +200,8 @@ mod tests {
             .unwrap()
             .models
             .into_iter()
-            .find(|m| m.model == model)
+            .filter(|m| m.model == model)
+            .min_by(|a, b| a.effective_from.cmp(&b.effective_from))
             .unwrap()
     }
 

@@ -1,5 +1,5 @@
 {
-  "version": "2026-10-31.7",
+  "version": "2026-10-31.8",
   "note": "Estimated list prices in USD per million tokens, from vendors' public pricing pages. Estimates only; edit in Settings to match your plan.",
   "models": [
     {"model": "claude-opus-4-1", "aliases": ["claude-4.1-opus"], "effective_from": "2025-08-05", "input": 15.0, "output": 75.0, "cache_read": 1.5, "cache_write": 18.75, "cache_write_1h": 30.0},
@@ -54,6 +54,9 @@
     {"model": "gemini-3-flash-preview", "aliases": [], "effective_from": "2025-01-01", "input": 0.5, "output": 3.0, "cache_read": 0.05, "cache_write": 0.0},
     {"model": "gemini-3.5-flash-lite", "aliases": [], "effective_from": "2025-01-01", "input": 0.3, "output": 2.5, "cache_read": 0.03, "cache_write": 0.0},
     {"model": "gemini-3.1-flash-lite", "aliases": [], "effective_from": "2025-01-01", "input": 0.25, "output": 1.5, "cache_read": 0.025, "cache_write": 0.0},
-    {"model": "gemini-2.5-flash-lite", "aliases": [], "effective_from": "2025-01-01", "input": 0.1, "output": 0.4, "cache_read": 0.01, "cache_write": 0.0}
+    {"model": "gemini-2.5-flash-lite", "aliases": [], "effective_from": "2025-01-01", "input": 0.1, "output": 0.4, "cache_read": 0.01, "cache_write": 0.0},
+    {"model": "gemini-4-argon", "aliases": [], "effective_from": "2026-12-01", "input": 4.0, "output": 20.0, "cache_read": 0.2, "cache_write": 0.0},
+    {"model": "gemini-3.8-flash", "aliases": [], "effective_from": "2027-01-01", "input": 1.5, "output": 7.5, "cache_read": 0.15, "cache_write": 0.0},
+    {"model": "gemini-3.6-flash", "aliases": [], "effective_from": "2027-01-01", "input": 1.5, "output": 7.5, "cache_read": 0.15, "cache_write": 0.0}
   ]
 }

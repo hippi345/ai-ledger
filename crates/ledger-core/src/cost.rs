@@ -339,6 +339,37 @@ mod tests {
         assert_eq!(g.cache_write_1h, None);
     }
 
+    /// Scheduled promo endings from https://ai.google.dev/gemini-api/docs/pricing
+    /// (checked 2026-10-31) are bundled as future-dated rows.
+    #[test]
+    fn future_dated_rows_take_effect_on_their_date() {
+        let c = setup();
+        let at = |m: &str, ts: &str| {
+            let r = rate_at(&c, m, ts).unwrap().unwrap();
+            (r.input, r.output, r.cache_read)
+        };
+        assert_eq!(
+            at("gemini-4-argon", "2026-11-30T23:59:59Z"),
+            (2.0, 10.0, 0.1)
+        );
+        assert_eq!(
+            at("gemini-4-argon", "2026-12-01T00:00:00Z"),
+            (4.0, 20.0, 0.2)
+        );
+        assert_eq!(
+            at("gemini-3.8-flash", "2026-12-31T12:00:00Z"),
+            (0.75, 3.75, 0.075)
+        );
+        assert_eq!(
+            at("gemini-3.8-flash", "2027-01-01T00:00:00Z"),
+            (1.5, 7.5, 0.15)
+        );
+        assert_eq!(
+            at("gemini-3.6-flash", "2027-02-01T00:00:00Z"),
+            (1.5, 7.5, 0.15)
+        );
+    }
+
     #[test]
     fn cost_math() {
         let rate = Rate {
