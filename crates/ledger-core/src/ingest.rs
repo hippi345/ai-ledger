@@ -182,6 +182,7 @@ pub fn upsert_events(
                 )?;
                 tx.execute("DELETE FROM tool_calls WHERE event_id = ?1", [row.0])?;
                 insert_tool_calls(&tx, row.0, &e.tool_calls)?;
+                crate::cost::price_event(&tx, row.0)?;
                 stats.updated += 1;
             }
             None => {
@@ -195,7 +196,9 @@ pub fn upsert_events(
                         params.7, params.8, params.9, params.10, params.11, source_id,
                     ),
                 )?;
-                insert_tool_calls(&tx, tx.last_insert_rowid(), &e.tool_calls)?;
+                let id = tx.last_insert_rowid();
+                insert_tool_calls(&tx, id, &e.tool_calls)?;
+                crate::cost::price_event(&tx, id)?;
                 stats.inserted += 1;
             }
         }
