@@ -9,6 +9,14 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 export const commands = {
 	/**  Returns the app and core library versions. */
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
+	/**  Returns a setting's stored JSON value, or null when unset. */
+	getSetting: (key: string) => typedError<Value | null, IpcError>(__TAURI_INVOKE("get_setting", { key })),
+	/**  Stores a setting. */
+	setSetting: (key: string, value: Value) => typedError<null, IpcError>(__TAURI_INVOKE("set_setting", { key, value })),
+	/**  Removes a setting so its default applies. Returns whether it was set. */
+	resetSetting: (key: string) => typedError<boolean, IpcError>(__TAURI_INVOKE("reset_setting", { key })),
+	/**  Lists all stored settings, sorted by key. */
+	listSettings: () => typedError<SettingEntry[], IpcError>(__TAURI_INVOKE("list_settings")),
 };
 
 /* Types */
@@ -17,3 +25,27 @@ export type AppInfo = {
 	appVersion: string,
 	coreVersion: string,
 };
+
+/**  `{ code, message }`; `code` is stable for the UI to switch on. */
+export type IpcError = {
+	code: string,
+	message: string,
+};
+
+/**  One stored setting. */
+export type SettingEntry = {
+	key: string,
+	value: Value,
+};
+
+export type Value = null | boolean | number | string | Value[] | { [key in string]: Value };
+
+/* Tauri Specta runtime */
+async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+    try {
+        return { status: "ok", data: await result };
+    } catch (e) {
+        if (e instanceof Error) throw e;
+        return { status: "error", error: e as any };
+    }
+}
