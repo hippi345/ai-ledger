@@ -28,6 +28,7 @@ name = "ai-ledger"
 version = "0.1.0"
 dependencies = [
  "ledger-core",
+ "rusqlite",
  "serde",
  "serde_json",
  "specta",
@@ -35,6 +36,8 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-specta",
+ "tempfile",
+ "tracing",
 ]
 
 [[package]]
