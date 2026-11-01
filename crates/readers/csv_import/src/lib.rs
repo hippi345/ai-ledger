@@ -11,6 +11,7 @@
 
 use std::path::{Path, PathBuf};
 
+use ledger_core::cost::ServiceTier;
 use ledger_core::ingest::{raw_hash, NewEvent};
 use ledger_core::reader::{Cursor, RawEvent, Reader, SourceCandidate, SourceCfg, Tier};
 use ledger_core::{Error, Result};
@@ -40,6 +41,10 @@ pub struct Mapping {
     pub cache_read_tokens: Option<String>,
     pub cache_write_tokens: Option<String>,
     pub requests: Option<String>,
+    /// Vendor service tier column (e.g. OpenAI's `service_tier`: default,
+    /// batch, flex, priority). Unrecognized or empty values stay unset and
+    /// bill as Standard; the tier is never guessed.
+    pub service_tier: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -170,6 +175,7 @@ fn row_event(cfg: &Config, get: impl Fn(&str) -> Option<String>) -> Option<NewEv
         } else {
             1
         },
+        service_tier: text(&m.service_tier).and_then(|s| ServiceTier::parse(&s)),
         ..Default::default()
     };
     let path = cfg.path.to_string_lossy();
@@ -392,6 +398,34 @@ mod tests {
         ledger_core::ingest::upsert_events(&mut db, 1, &ev).unwrap();
         let s = ledger_core::ingest::upsert_events(&mut db, 1, &ev).unwrap();
         assert_eq!(s.unchanged, 3);
+    }
+
+    #[test]
+    fn service_tier_column_is_read_only_when_recognized() {
+        let mut cfg = csv_cfg();
+        cfg.mapping.service_tier = Some("Tier".into());
+        let data = b"Date,Model,Input Tokens,Tier\n\
+            2026-10-01,gpt-5.6-sol,10,batch\n\
+            2026-10-02,gpt-5.6-sol,10,priority\n\
+            2026-10-03,gpt-5.6-sol,10,\n\
+            2026-10-04,gpt-5.6-sol,10,mystery\n";
+        let tiers: Vec<_> = parse_csv(&cfg, data)
+            .unwrap()
+            .events
+            .into_iter()
+            .map(|e| e.service_tier)
+            .collect();
+        assert_eq!(
+            tiers,
+            [
+                Some(ServiceTier::Batch),
+                Some(ServiceTier::Fast),
+                None,
+                None
+            ]
+        );
+        let unmapped = parse_csv(&csv_cfg(), b"Date,Model\n2026-10-01,m\n").unwrap();
+        assert_eq!(unmapped.events[0].service_tier, None);
     }
 
     #[test]
