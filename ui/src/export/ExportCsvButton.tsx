@@ -1,5 +1,5 @@
 import { csvFileName, toCsv, type Cell } from "./csv";
-import { saveText } from "./download";
+import { saveCsv } from "./download";
 import { utcToday } from "../filters/range";
 
 type Props = {
@@ -17,7 +17,7 @@ export function ExportCsvButton({ name, header, rows }: Props) {
       aria-label={`Export ${name} as CSV`}
       disabled={rows.length === 0}
       onClick={() =>
-        saveText(csvFileName(name, utcToday()), toCsv(header, rows))
+        void saveCsv(csvFileName(name, utcToday()), toCsv(header, rows))
       }
     >
       CSV

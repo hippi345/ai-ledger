@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 const inst = {
@@ -24,6 +24,15 @@ vi.mock("echarts/components", () => ({
 }));
 vi.mock("echarts/renderers", () => ({ CanvasRenderer: {} }));
 
+const save = vi.fn();
+const writeFile = vi.fn();
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  save: (...a: unknown[]) => save(...a),
+}));
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  writeFile: (...a: unknown[]) => writeFile(...a),
+}));
+
 import { Chart } from "./Chart";
 
 test("applies the themed option, wires clicks, and disposes", () => {
@@ -48,15 +57,8 @@ test("applies the themed option, wires clicks, and disposes", () => {
   expect(inst.dispose).toHaveBeenCalled();
 });
 
-test("exports a PNG when exportName is set", () => {
-  const click = vi
-    .spyOn(HTMLAnchorElement.prototype, "click")
-    .mockImplementation(function (this: HTMLAnchorElement) {
-      expect(this.download).toMatch(
-        /^ai-ledger-cost-trend-\d{4}-\d{2}-\d{2}\.png$/,
-      );
-      expect(this.href).toBe("data:image/png;base64,AA");
-    });
+test("exports a PNG via the save dialog when exportName is set", async () => {
+  save.mockResolvedValue("/tmp/c.png");
   render(<Chart label="Cost" option={{}} exportName="Cost trend" />);
   fireEvent.click(
     screen.getByRole("button", { name: "Export Cost trend as PNG" }),
@@ -66,8 +68,10 @@ test("exports a PNG when exportName is set", () => {
     pixelRatio: 2,
     backgroundColor: "#ffffff",
   });
-  expect(click).toHaveBeenCalledOnce();
-  click.mockRestore();
+  await waitFor(() => expect(writeFile).toHaveBeenCalled());
+  expect(save.mock.calls[0][0].defaultPath).toMatch(
+    /^ai-ledger-cost-trend-\d{4}-\d{2}-\d{2}\.png$/,
+  );
 });
 
 test("no PNG button without exportName", () => {

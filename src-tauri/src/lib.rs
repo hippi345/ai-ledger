@@ -26,6 +26,9 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        // Exports: a native save dialog, then write the bytes to the chosen path.
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(specta.invoke_handler())
         .on_window_event(|w, e| {
             // Minimize to tray: closing the window hides it while the tray is up.

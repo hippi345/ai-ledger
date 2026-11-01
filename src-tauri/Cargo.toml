@@ -32,6 +32,8 @@ rusqlite = { version = "0.37", features = ["bundled"] }
 tracing = "0.1"
 notify = "8"
 tauri-plugin-autostart = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 ledger-core = { path = "../crates/ledger-core" }
 reader-cursor = { path = "../crates/readers/cursor" }

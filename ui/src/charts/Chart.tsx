@@ -11,7 +11,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsCoreOption } from "echarts/core";
 import { baseOption } from "./theme";
 import { utcToday } from "../filters/range";
-import { saveUrl } from "../export/download";
+import { savePng } from "../export/download";
 import { pngFileName } from "../export/png";
 
 echarts.use([
@@ -98,7 +98,7 @@ export function Chart({
             pixelRatio: 2,
             backgroundColor: "#ffffff",
           });
-          if (url) saveUrl(pngFileName(exportName, utcToday()), url);
+          if (url) void savePng(pngFileName(exportName, utcToday()), url);
         }}
       >
         PNG
