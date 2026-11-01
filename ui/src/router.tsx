@@ -194,6 +194,12 @@ const routes = PAGES.map((p) =>
             <DimensionPage dim="model" />
           </Page>
         );
+      if (p.path === "/projects")
+        return (
+          <Page title={p.label}>
+            <DimensionPage dim="project" />
+          </Page>
+        );
       if (p.path === "/settings")
         return (
           <Page title={p.label}>
