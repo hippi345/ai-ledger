@@ -123,7 +123,7 @@ export function ImportPanel({ onAdded }: { onAdded: () => void }) {
           <fieldset>
             <legend>Map columns</legend>
             {FIELDS.map((f) => (
-              <label key={f.key} style={{ display: "block" }}>
+              <label key={f.key} className="field">
                 {f.label}{" "}
                 <select
                   value={mapping[f.key] ?? ""}
@@ -138,7 +138,7 @@ export function ImportPanel({ onAdded }: { onAdded: () => void }) {
                 </select>
               </label>
             ))}
-            <label style={{ display: "block" }}>
+            <label className="field">
               App name when no App column{" "}
               <input
                 value={app}
