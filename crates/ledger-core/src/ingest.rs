@@ -160,6 +160,21 @@ pub fn upsert_events(
     source_id: i64,
     events: &[NewEvent],
 ) -> Result<IngestStats> {
+    // Hash project names on the way in when the privacy setting is on.
+    let hashed: Vec<NewEvent>;
+    let events = if crate::privacy::hashing_on(conn)? {
+        hashed = events
+            .iter()
+            .cloned()
+            .map(|mut e| {
+                e.project = e.project.map(|p| crate::privacy::hash_project(&p));
+                e
+            })
+            .collect();
+        &hashed[..]
+    } else {
+        events
+    };
     let tx = conn.transaction()?;
     let mut stats = IngestStats::default();
     for e in events {
@@ -427,5 +442,37 @@ mod tests {
         // source 99 does not exist, so the whole batch must roll back.
         assert!(upsert_events(&mut c, 99, &[ev("1", 1), bad]).is_err());
         assert_eq!(count(&c, "events"), 0);
+    }
+
+    #[test]
+    fn hashes_new_project_names_when_enabled() {
+        let mut c = db::open_in_memory().unwrap();
+        c.execute("INSERT INTO sources (reader_id, tier) VALUES ('t', 1)", [])
+            .unwrap();
+        let ev = |hash: &str| NewEvent {
+            ts_utc: "2026-11-01T00:00:00Z".into(),
+            app: "cursor".into(),
+            project: Some("secret".into()),
+            session_id: Some(format!("s-{hash}")),
+            raw_hash: hash.into(),
+            ..Default::default()
+        };
+        upsert_events(&mut c, 1, &[ev("a")]).unwrap();
+        crate::settings::set(&c, crate::settings::keys::HASH_PROJECT_NAMES, &true).unwrap();
+        upsert_events(&mut c, 1, &[ev("b")]).unwrap();
+        let p = |h: &str| -> String {
+            c.query_row("SELECT project FROM events WHERE raw_hash = ?1", [h], |r| {
+                r.get(0)
+            })
+            .unwrap()
+        };
+        assert_eq!(p("a"), "secret", "existing rows are untouched");
+        assert_eq!(p("b"), crate::privacy::hash_project("secret"));
+        let s: String = c
+            .query_row("SELECT project FROM sessions WHERE id = 's-b'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(s, crate::privacy::hash_project("secret"));
     }
 }

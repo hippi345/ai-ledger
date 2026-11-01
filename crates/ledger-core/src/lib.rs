@@ -15,6 +15,7 @@ pub mod manual;
 pub mod migrations;
 pub mod overrides;
 pub mod prices;
+pub mod privacy;
 pub mod reader;
 pub mod retention;
 pub mod rollup;
