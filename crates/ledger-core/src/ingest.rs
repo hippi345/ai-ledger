@@ -56,6 +56,8 @@ pub struct NewEvent {
     /// 12-hour cache writes (OpenAI's extended cache), priced separately.
     pub cache_write_12h_tokens: u64,
     pub requests: u64,
+    /// Vendor service tier, when the source records it.
+    pub service_tier: Option<crate::cost::ServiceTier>,
     pub estimated: bool,
     pub raw_hash: String,
     pub tool_calls: Vec<NewToolCall>,
@@ -80,10 +82,11 @@ type StoredRow = (
     Option<String>,
     [i64; 7],
     bool,
+    Option<String>,
 );
 
 fn same(stored: &StoredRow, e: &NewEvent) -> bool {
-    let (_, model, project, session, n, est) = stored;
+    let (_, model, project, session, n, est, tier) = stored;
     *model == e.model
         && *project == e.project
         && *session == e.session_id
@@ -98,16 +101,20 @@ fn same(stored: &StoredRow, e: &NewEvent) -> bool {
                 to_i64(e.cache_write_12h_tokens),
             ]
         && *est == e.estimated
+        && tier.as_deref() == e.service_tier.map(crate::cost::ServiceTier::as_str)
 }
 
-fn set_1h(conn: &Connection, id: i64, e: &NewEvent) -> Result<()> {
+fn set_extras(conn: &Connection, id: i64, e: &NewEvent) -> Result<()> {
     conn.prepare_cached(
-        "UPDATE events SET cache_write_1h_tokens = ?2, cache_write_12h_tokens = ?3 WHERE id = ?1",
+        "UPDATE events SET cache_write_1h_tokens = ?2, cache_write_12h_tokens = ?3,
+                service_tier = ?4
+         WHERE id = ?1",
     )?
     .execute((
         id,
         to_i64(e.cache_write_1h_tokens),
         to_i64(e.cache_write_12h_tokens),
+        e.service_tier.map(crate::cost::ServiceTier::as_str),
     ))?;
     Ok(())
 }
@@ -160,7 +167,7 @@ pub fn upsert_events(
             .query_row(
                 "SELECT id, model, project, session_id, input_tokens, output_tokens,
                         cache_read_tokens, cache_write_tokens, requests, cache_write_1h_tokens,
-                        cache_write_12h_tokens, estimated
+                        cache_write_12h_tokens, estimated, service_tier
                  FROM events WHERE raw_hash = ?1",
                 [&e.raw_hash],
                 |r| {
@@ -179,6 +186,7 @@ pub fn upsert_events(
                             r.get(10)?,
                         ],
                         r.get(11)?,
+                        r.get(12)?,
                     ))
                 },
             )
@@ -208,7 +216,7 @@ pub fn upsert_events(
                      WHERE raw_hash=?12",
                     params,
                 )?;
-                set_1h(&tx, row.0, e)?;
+                set_extras(&tx, row.0, e)?;
                 tx.execute("DELETE FROM tool_calls WHERE event_id = ?1", [row.0])?;
                 insert_tool_calls(&tx, row.0, &e.tool_calls)?;
                 crate::cost::price_event(&tx, row.0)?;
@@ -226,7 +234,7 @@ pub fn upsert_events(
                     ),
                 )?;
                 let id = tx.last_insert_rowid();
-                set_1h(&tx, id, e)?;
+                set_extras(&tx, id, e)?;
                 insert_tool_calls(&tx, id, &e.tool_calls)?;
                 crate::cost::price_event(&tx, id)?;
                 stats.inserted += 1;
@@ -389,6 +397,26 @@ mod tests {
             })
             .unwrap();
         assert_eq!(v, 90);
+    }
+
+    #[test]
+    fn service_tier_is_stored_and_compared() {
+        let mut c = setup();
+        let mut e = ev("1", 1);
+        e.service_tier = Some(crate::cost::ServiceTier::Batch);
+        upsert_events(&mut c, 1, std::slice::from_ref(&e)).unwrap();
+        assert_eq!(
+            upsert_events(&mut c, 1, std::slice::from_ref(&e))
+                .unwrap()
+                .unchanged,
+            1
+        );
+        e.service_tier = Some(crate::cost::ServiceTier::Fast);
+        assert_eq!(upsert_events(&mut c, 1, &[e]).unwrap().updated, 1);
+        let v: String = c
+            .query_row("SELECT service_tier FROM events", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(v, "fast");
     }
 
     #[test]
