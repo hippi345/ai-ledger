@@ -18,7 +18,7 @@ export const DEFAULT_FIXTURES: Fixtures = {
   list_price_overrides: [],
   list_unknown_models: [],
   list_prices: [],
-  summary_cards: [{ kind: "today", text: "Today: 12K tokens, ~$0.42." }],
+  summary_cards: [{ label: "Today", text: "Today: 12K tokens, ~$0.42." }],
   aggregate: {
     rows: [{ keys: ["2026-11-01", "gpt-5"], value: 1200 }],
     total: 1200,
