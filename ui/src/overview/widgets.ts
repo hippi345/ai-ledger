@@ -58,3 +58,26 @@ export function addWidget(layout: Widget[], kind: WidgetKind): Widget[] {
 export function removeWidget(layout: Widget[], i: string): Widget[] {
   return layout.filter((w) => w.i !== i);
 }
+
+/** Grid geometry as reported by the layout engine after a drag or resize. */
+export type Geometry = {
+  i: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+/** Copies moved/resized geometry onto the widgets; returns `layout` itself when nothing changed. */
+export function applyGeometry(layout: Widget[], geo: Geometry[]): Widget[] {
+  const by = new Map(geo.map((g) => [g.i, g]));
+  let changed = false;
+  const next = layout.map((w) => {
+    const g = by.get(w.i);
+    if (!g || (g.x === w.x && g.y === w.y && g.w === w.w && g.h === w.h))
+      return w;
+    changed = true;
+    return { ...w, x: g.x, y: g.y, w: g.w, h: g.h };
+  });
+  return changed ? next : layout;
+}
