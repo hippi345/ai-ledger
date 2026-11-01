@@ -9,7 +9,11 @@ const inst = {
   off: vi.fn(),
   getDataURL: vi.fn(() => "data:image/png;base64,AA"),
 };
-vi.mock("echarts/core", () => ({ init: vi.fn(() => inst), use: vi.fn() }));
+vi.mock("echarts/core", () => ({
+  init: vi.fn(() => inst),
+  use: vi.fn(),
+  registerTheme: vi.fn(),
+}));
 vi.mock("echarts/charts", () => ({
   BarChart: {},
   HeatmapChart: {},

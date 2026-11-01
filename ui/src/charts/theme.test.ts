@@ -16,7 +16,7 @@ test("cost formatting", () => {
 });
 
 test("Other is grey and colors cycle", () => {
-  expect(seriesColor("Other", 0)).toBe("#94a3b8");
+  expect(seriesColor("Other", 0)).toBe("#404040");
   expect(seriesColor("a", 0)).toBe(PALETTE[0]);
   expect(seriesColor("a", PALETTE.length - 1)).toBe(PALETTE[0]);
 });
