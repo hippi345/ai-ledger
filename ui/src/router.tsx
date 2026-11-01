@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-router";
 import { PricesSettings } from "./settings/PricesSettings";
 import { SourcesSettings } from "./settings/SourcesSettings";
+import { CostsPage } from "./costs/CostsPage";
 import { Overview } from "./overview/Overview";
 import { DimensionPage } from "./pages/DimensionPage";
 import { Sessions } from "./pages/Sessions";
@@ -214,6 +215,12 @@ const routes = PAGES.map((p) =>
             <Sessions />
           </Page>
         );
+      if (p.path === "/costs")
+        return (
+          <Page title={p.label}>
+            <CostsPage />
+          </Page>
+        );
       if (p.path === "/settings")
         return (
           <Page title={p.label}>
@@ -221,7 +228,8 @@ const routes = PAGES.map((p) =>
             <PricesSettings />
           </Page>
         );
-      return <Page title={p.label} />;
+      // Every page has a body above; TypeScript checks none is missed.
+      return p satisfies never;
     },
   }),
 );
