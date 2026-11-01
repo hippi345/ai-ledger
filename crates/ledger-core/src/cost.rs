@@ -11,6 +11,39 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::{prices, settings, Result};
 
+/// Vendor service tier of a request. Non-standard tiers bill the whole
+/// request at a multiple of the Standard rate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServiceTier {
+    Standard,
+    Batch,
+    Flex,
+    Fast,
+}
+
+impl ServiceTier {
+    /// Name stored in `events.service_tier`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Standard => "standard",
+            Self::Batch => "batch",
+            Self::Flex => "flex",
+            Self::Fast => "fast",
+        }
+    }
+
+    /// Parses a stored or user-supplied tier name (case-insensitive).
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "standard" | "default" => Some(Self::Standard),
+            "batch" => Some(Self::Batch),
+            "flex" => Some(Self::Flex),
+            "fast" | "priority" => Some(Self::Fast),
+            _ => None,
+        }
+    }
+}
+
 /// Rates in USD per million tokens, plus the version they came from.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rate {
@@ -501,6 +534,20 @@ mod tests {
         flat.cache_write_12h = None;
         flat.tiers.clear();
         assert!((cost(&flat, short) - 0.25).abs() < 1e-9, "falls back");
+    }
+
+    #[test]
+    fn service_tier_names_round_trip() {
+        assert_eq!(ServiceTier::parse("Priority"), Some(ServiceTier::Fast));
+        assert_eq!(ServiceTier::parse("x"), None);
+        for t in [
+            ServiceTier::Standard,
+            ServiceTier::Batch,
+            ServiceTier::Flex,
+            ServiceTier::Fast,
+        ] {
+            assert_eq!(ServiceTier::parse(t.as_str()), Some(t));
+        }
     }
 
     #[test]

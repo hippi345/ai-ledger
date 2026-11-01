@@ -48,6 +48,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "cache_write_12h",
         sql: include_str!("../migrations/0006_cache_write_12h.sql"),
     },
+    Migration {
+        version: 7,
+        name: "service_tiers",
+        sql: include_str!("../migrations/0007_service_tiers.sql"),
+    },
 ];
 
 /// Highest version known to this build (0 when there are none).
