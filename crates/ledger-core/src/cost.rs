@@ -54,7 +54,9 @@ pub struct Tokens {
 
 /// USD cost of `t` at `r`.
 /// The whole request is billed at the highest tier whose threshold the
-/// prompt (input + cache read + cache write) exceeds, as vendors bill it.
+/// prompt (input + cache read + all cache writes) exceeds, as vendors bill
+/// it. Cached tokens count toward OpenAI's 272k threshold too; that's an
+/// assumption, since the page only says "input tokens".
 pub fn cost(r: &Rate, t: Tokens) -> f64 {
     #[allow(clippy::cast_precision_loss)]
     let f = |n: u64| n as f64;
@@ -391,6 +393,28 @@ mod tests {
         for n in ["gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"] {
             assert!(rate_at(&c, n, at).unwrap().unwrap().tiers.is_empty(), "{n}");
         }
+    }
+
+    /// Cached tokens count toward OpenAI's 272k threshold (Joel's call,
+    /// 2026-10-31; the pricing page only says "input tokens").
+    #[test]
+    fn openai_cached_tokens_count_toward_272k() {
+        let c = setup();
+        let r = rate_at(&c, "gpt-5.5", "2026-10-31T00:00:00Z")
+            .unwrap()
+            .unwrap();
+        let t = Tokens {
+            input: 100_000,
+            cache_read: 200_000,
+            ..Tokens::default()
+        };
+        assert!((cost(&r, t) - (100_000.0 * 10.0 + 200_000.0 * 1.0) / 1e6).abs() < 1e-9);
+        let under = Tokens {
+            input: 72_000,
+            cache_read: 200_000,
+            ..Tokens::default()
+        };
+        assert!((cost(&r, under) - (72_000.0 * 5.0 + 200_000.0 * 0.5) / 1e6).abs() < 1e-9);
     }
 
     #[test]
