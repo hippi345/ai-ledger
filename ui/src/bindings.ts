@@ -51,6 +51,13 @@ export type Candidate = {
 	added: boolean,
 };
 
+/**  Payload of [`INGESTED_EVENT`]: which source changed and how much. */
+export type IngestedEvent = {
+	sourceId: number,
+	inserted: number,
+	updated: number,
+};
+
 /**  `{ code, message }`; `code` is stable for the UI to switch on. */
 export type IpcError = {
 	code: string,
