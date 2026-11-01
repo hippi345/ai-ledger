@@ -43,3 +43,17 @@ test("shows backend errors", async () => {
   render(<PricesSettings />);
   expect(await screen.findByRole("alert")).toHaveTextContent("non-negative");
 });
+
+test("an unpriced model can be picked to prefill a new override", async () => {
+  invoke.mockImplementation(async (cmd: string) => {
+    switch (cmd) {
+      case "list_price_overrides":
+        return [];
+      case "list_unknown_models":
+        return [{ model: "mystery-1", events: 2, tokens: 50, firstSeen: "2026-10-01", lastSeen: "2026-10-02" }];
+    }
+  });
+  render(<PricesSettings />);
+  fireEvent.click(await screen.findByRole("button", { name: "Add price for mystery-1" }));
+  expect(screen.getByLabelText("Model")).toHaveValue("mystery-1");
+});

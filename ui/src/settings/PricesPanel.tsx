@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { PriceOverride } from "../bindings";
 
 type Props = {
@@ -6,6 +6,8 @@ type Props = {
   busy: boolean;
   onSave: (p: PriceOverride) => void;
   onRemove: (model: string, effectiveFrom: string) => void;
+  /** When set, fills the Model field (e.g. from the unpriced models list). */
+  prefillModel?: string;
 };
 
 const RATES = [
@@ -18,8 +20,11 @@ const RATES = [
 const empty = { model: "", effectiveFrom: "", input: "", output: "", cacheRead: "0", cacheWrite: "0" };
 
 /** Lists user price overrides (USD per million tokens) and adds new ones. */
-export function PricesPanel({ overrides, busy, onSave, onRemove }: Props) {
+export function PricesPanel({ overrides, busy, onSave, onRemove, prefillModel }: Props) {
   const [form, setForm] = useState(empty);
+  useEffect(() => {
+    if (prefillModel) setForm((f) => ({ ...f, model: prefillModel }));
+  }, [prefillModel]);
   const set = (k: keyof typeof empty) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
   const submit = (e: FormEvent) => {
