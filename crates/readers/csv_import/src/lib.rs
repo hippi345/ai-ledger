@@ -18,6 +18,8 @@ use ledger_core::{Error, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+pub mod inspect;
+
 pub const READER_ID: &str = "csv_import";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
