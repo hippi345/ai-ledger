@@ -93,6 +93,11 @@ export function Prices() {
     });
   }, []);
   if (error) return <p role="alert">{error}</p>;
-  if (!rows) return <p>Loading…</p>;
+  if (!rows)
+    return (
+      <p className="skeleton" aria-busy="true">
+        <span className="sr-only">Loading…</span>
+      </p>
+    );
   return <PriceTable rows={rows} />;
 }

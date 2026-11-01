@@ -20,7 +20,12 @@ function ChartWidget({ widget }: { widget: Widget }) {
   const cross = useCrossFilter(data?.crossDim ?? "model");
   const label = WIDGET_LABELS[widget.kind];
   if (error) return <p role="alert">{error}</p>;
-  if (!data) return <p>Loading…</p>;
+  if (!data)
+    return (
+      <p className="skeleton" aria-busy="true">
+        <span className="sr-only">Loading…</span>
+      </p>
+    );
   // Stacked series are categories by series name; other charts by item name.
   const byName = widget.kind === "tokens-over-time" ? "seriesName" : "name";
   return (

@@ -1,0 +1,72 @@
+/* Loading, empty and error states (redesign §4.9). */
+.skeleton {
+    display: block;
+    width: 100%;
+    min-height: 20px;
+    margin: 0;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(
+        90deg,
+        var(--surface-hover) 0%,
+        #1f1f1f 50%,
+        var(--surface-hover) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s linear infinite;
+}
+
+/* Page and widget bodies: a block at chart height. */
+.shell > main section > .skeleton,
+.react-grid-item .skeleton {
+    min-height: 240px;
+}
+
+section[aria-label="Summary"] > .skeleton,
+section[aria-label="Summary"].skeleton {
+    min-height: 72px;
+}
+
+@keyframes skeleton-shimmer {
+    from {
+        background-position: 100% 0;
+    }
+    to {
+        background-position: -100% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+    }
+}
+
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-6, 32px) var(--space-4);
+    text-align: center;
+    font: 500 var(--text-base) var(--font-sans);
+    color: var(--text);
+}
+
+.empty::before {
+    content: "";
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-subtle);
+}
+
+[role="alert"] {
+    margin: 0 0 var(--space-3);
+    padding: 10px 12px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-sm);
+    background: var(--danger-muted);
+    color: #fca5a5;
+    font: var(--text-sm) var(--font-sans);
+}

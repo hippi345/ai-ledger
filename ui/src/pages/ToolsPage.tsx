@@ -19,7 +19,12 @@ export function ToolsPage() {
   const crossTool = useCrossFilter("tool");
   const crossMcp = useCrossFilter("mcp");
   if (error) return <p role="alert">{error}</p>;
-  if (!data) return <p>Loading…</p>;
+  if (!data)
+    return (
+      <p className="skeleton" aria-busy="true">
+        <span className="sr-only">Loading…</span>
+      </p>
+    );
   const columns: Column[] = [
     { key: "tool", label: "Tool" },
     {

@@ -53,9 +53,15 @@ export function SessionTimeline({ id, onBack }: Props) {
       </button>
       <h3>Session {id}</h3>
       {error && <p role="alert">{error}</p>}
-      {!error && !items && <p>Loading…</p>}
+      {!error && !items && (
+        <p className="skeleton" aria-busy="true">
+          <span className="sr-only">Loading…</span>
+        </p>
+      )}
       {items && items.length === 0 && (
-        <p>No events left for this session (retention may have pruned them).</p>
+        <p className="empty">
+          No events left for this session (retention may have pruned them).
+        </p>
       )}
       {items && items.length > 0 && (
         <>
