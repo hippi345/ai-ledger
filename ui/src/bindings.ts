@@ -25,6 +25,12 @@ export const commands = {
 	addSource: (candidate: Candidate) => typedError<number, IpcError>(__TAURI_INVOKE("add_source", { candidate })),
 	/**  Enables or disables a source. */
 	setSourceEnabled: (id: number, enabled: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_source_enabled", { id, enabled })),
+	/**  Lists a CSV/JSON export's columns and suggests a mapping. */
+	inspectImport: (path: string) => typedError<ImportInspection_Serialize, IpcError>(__TAURI_INVOKE("inspect_import", { path })),
+	/**  Shows what an import would add, without storing anything. */
+	previewImport: (spec: ImportSpec_Deserialize) => typedError<ImportPreview_Serialize, IpcError>(__TAURI_INVOKE("preview_import", { spec })),
+	/**  Adds a CSV/JSON import source with the chosen mapping and reads it. */
+	addImport: (spec: ImportSpec_Deserialize) => typedError<number, IpcError>(__TAURI_INVOKE("add_import", { spec })),
 	/**  Lists user price overrides. */
 	listPriceOverrides: () => typedError<PriceOverride[], IpcError>(__TAURI_INVOKE("list_price_overrides")),
 	/**  Adds or replaces an override and re-prices all events. */
@@ -158,6 +164,104 @@ export type HeatCell = {
 	hour: number,
 	events: number,
 	tokens: number | null,
+};
+
+/**  A chosen file's columns and a suggested mapping. */
+export type ImportInspection = ImportInspection_Serialize | ImportInspection_Deserialize;
+
+/**  A chosen file's columns and a suggested mapping. */
+export type ImportInspection_Deserialize = {
+	/**  `csv` or `json`. */
+	format: string,
+	columns: string[],
+	sample: string[][],
+	rows: number,
+	suggested: ImportMapping_Deserialize,
+};
+
+/**  A chosen file's columns and a suggested mapping. */
+export type ImportInspection_Serialize = {
+	/**  `csv` or `json`. */
+	format: string,
+	columns: string[],
+	sample: string[][],
+	rows: number,
+	suggested: ImportMapping_Serialize,
+};
+
+/**  Ledger fields a column can map to, as used by the UI. */
+export type ImportMapping = ImportMapping_Serialize | ImportMapping_Deserialize;
+
+/**  Ledger fields a column can map to, as used by the UI. */
+export type ImportMapping_Deserialize = {
+	ts: string,
+	app?: string | null,
+	model?: string | null,
+	project?: string | null,
+	inputTokens?: string | null,
+	outputTokens?: string | null,
+	cacheReadTokens?: string | null,
+	cacheWriteTokens?: string | null,
+	requests?: string | null,
+	serviceTier?: string | null,
+};
+
+/**  Ledger fields a column can map to, as used by the UI. */
+export type ImportMapping_Serialize = {
+	ts: string,
+	app: string | null,
+	model: string | null,
+	project: string | null,
+	inputTokens: string | null,
+	outputTokens: string | null,
+	cacheReadTokens: string | null,
+	cacheWriteTokens: string | null,
+	requests: string | null,
+	serviceTier: string | null,
+};
+
+/**  What an import would add. */
+export type ImportPreview = ImportPreview_Serialize | ImportPreview_Deserialize;
+
+/**  What an import would add. */
+export type ImportPreview_Deserialize = {
+	events: number,
+	skipped: number,
+	firstTs?: string | null,
+	lastTs?: string | null,
+	inputTokens: number,
+	outputTokens: number,
+};
+
+/**  What an import would add. */
+export type ImportPreview_Serialize = {
+	events: number,
+	skipped: number,
+	firstTs: string | null,
+	lastTs: string | null,
+	inputTokens: number,
+	outputTokens: number,
+};
+
+/**  The file, format, mapping and fallback app the user chose. */
+export type ImportSpec = ImportSpec_Serialize | ImportSpec_Deserialize;
+
+/**  The file, format, mapping and fallback app the user chose. */
+export type ImportSpec_Deserialize = {
+	path: string,
+	/**  `csv` or `json`. */
+	format: string,
+	mapping: ImportMapping_Deserialize,
+	defaultApp: string,
+};
+
+/**  The file, format, mapping and fallback app the user chose. */
+export type ImportSpec_Serialize = {
+	path: string,
+	/**  `csv` or `json`. */
+	format: string,
+	mapping: ImportMapping_Serialize,
+	defaultApp: string,
 };
 
 /**  Payload of [`INGESTED_EVENT`]: which source changed and how much. */
