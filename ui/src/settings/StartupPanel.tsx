@@ -27,6 +27,7 @@ export function StartupPanel() {
       {error && <p role="alert">{error}</p>}
       <label>
         <input
+          className="switch"
           type="checkbox"
           checked={on ?? false}
           disabled={on === null}

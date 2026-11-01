@@ -43,6 +43,7 @@ export function ProxyPanel() {
       </p>
       <label>
         <input
+          className="switch"
           type="checkbox"
           checked={st?.enabled ?? false}
           disabled={st === null}
@@ -64,10 +65,10 @@ export function ProxyPanel() {
       {st?.enabled && st.running && (
         <ul aria-label="Proxy base URLs">
           <li>
-            Anthropic: <code>{base}/anthropic</code>
+            Anthropic: <code className="pill">{base}/anthropic</code>
           </li>
           <li>
-            OpenAI: <code>{base}/openai/v1</code>
+            OpenAI: <code className="pill">{base}/openai/v1</code>
           </li>
         </ul>
       )}

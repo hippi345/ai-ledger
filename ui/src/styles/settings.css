@@ -1,0 +1,166 @@
+/* Settings panels and forms (redesign §4.8). */
+.shell
+    > main
+    > section[aria-labelledby="page-h"]:has(
+        > section[aria-labelledby="sources-heading"]
+    ) {
+    max-width: 760px;
+}
+
+.shell > main > section[aria-labelledby="page-h"] > section > h2 {
+    margin: 0 0 var(--space-2);
+    font: 500 var(--text-md) var(--font-sans);
+    color: var(--text);
+}
+
+section[aria-labelledby$="-h"] > p,
+section[aria-labelledby="sources-heading"] > p {
+    margin: 0 0 var(--space-3);
+    font: var(--text-sm) var(--font-sans);
+    color: var(--text-muted);
+}
+
+/* Labels with a control inside lay out as one row; .field stacks label over control. */
+section[aria-labelledby$="-h"] label,
+section[aria-labelledby="sources-heading"] label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 var(--space-3) var(--space-2) 0;
+    color: var(--text);
+}
+
+label.field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0 0 var(--space-3);
+}
+
+label.field > select,
+label.field > input {
+    min-width: 240px;
+}
+
+section[aria-labelledby="sources-heading"] ul {
+    margin: 0 0 var(--space-3);
+    padding: 0;
+    list-style: none;
+}
+
+section[aria-labelledby="sources-heading"] li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+section[aria-labelledby="sources-heading"] li:last-child {
+    border-bottom: 0;
+}
+
+/* Switch: native checkbox, restyled as a 32x18 track with a 14px knob. */
+input.switch {
+    appearance: none;
+    position: relative;
+    width: 32px;
+    height: 18px;
+    flex: none;
+    border-radius: 9px;
+    background: var(--border-strong);
+    cursor: pointer;
+    transition: background-color var(--dur) var(--ease);
+}
+
+input.switch::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform var(--dur) var(--ease);
+}
+
+input.switch:checked {
+    background: var(--accent);
+}
+
+input.switch:checked::before {
+    transform: translateX(14px);
+}
+
+input.switch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+input.switch:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Proxy base URLs */
+ul[aria-label="Proxy base URLs"] {
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--text-muted);
+}
+
+ul[aria-label="Proxy base URLs"] > li {
+    padding: 4px 0;
+}
+
+code.pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-subtle);
+    color: var(--text);
+    font: 12px/18px var(--font-mono);
+}
+
+/* Import: mapping fieldset and the sample preview inset. */
+section[aria-labelledby="import-h"] fieldset {
+    margin: var(--space-3) 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+section[aria-labelledby="import-h"] legend {
+    padding: 0 6px;
+    font: 500 var(--text-sm) var(--font-sans);
+    color: var(--text-muted);
+}
+
+section[aria-labelledby="import-h"] table[aria-label="Sample rows"] {
+    display: block;
+    max-height: 240px;
+    overflow: auto;
+    background: var(--bg-subtle);
+}
+
+/* Price override form: a wrapping grid of stacked fields. */
+form[aria-label="Add price override"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+}
+
+form[aria-label="Add price override"] label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+}
+
+form[aria-label="Add price override"] input {
+    width: 140px;
+    height: 28px;
+}
