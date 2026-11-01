@@ -12,21 +12,10 @@ const fmtDay = (t: number) => new Date(t).toISOString().slice(0, 10);
  * Projected total by `periodEnd` (exclusive): spend so far plus the average
  * daily spend over the days seen so far, times the days left.
  */
-export function projectTotal(
-  points: CostPoint[],
-  periodStart: string,
-  periodEnd: string,
-  today: string,
-) {
+export function projectTotal(points: CostPoint[], periodStart: string, periodEnd: string, today: string) {
   const spent = points.reduce((s, p) => s + p.cost, 0);
-  const elapsed = Math.max(
-    1,
-    Math.round((parse(today) - parse(periodStart)) / DAY) + 1,
-  );
-  const left = Math.max(
-    0,
-    Math.round((parse(periodEnd) - parse(today)) / DAY) - 1,
-  );
+  const elapsed = Math.max(1, Math.round((parse(today) - parse(periodStart)) / DAY) + 1);
+  const left = Math.max(0, Math.round((parse(periodEnd) - parse(today)) / DAY) - 1);
   return spent + (spent / elapsed) * left;
 }
 
@@ -39,8 +28,7 @@ export function costTrendOption(
 ): EChartsCoreOption {
   const byDay = new Map(points.map((p) => [p.day, p.cost]));
   const days: string[] = [];
-  for (let t = parse(periodStart); t < parse(periodEnd); t += DAY)
-    days.push(fmtDay(t));
+  for (let t = parse(periodStart); t < parse(periodEnd); t += DAY) days.push(fmtDay(t));
   let run = 0;
   const actual = days.map((d) => {
     if (d > today) return null;
@@ -59,18 +47,9 @@ export function costTrendOption(
     tooltip: { trigger: "axis", valueFormatter: (v: number) => formatCost(v) },
     legend: { bottom: 0 },
     xAxis: { type: "category", data: days, boundaryGap: false },
-    yAxis: {
-      type: "value",
-      axisLabel: { formatter: (v: number) => formatCost(v) },
-    },
+    yAxis: { type: "value", axisLabel: { formatter: (v: number) => formatCost(v) } },
     series: [
-      {
-        name: "Cost so far",
-        type: "line",
-        showSymbol: false,
-        color: PALETTE[0],
-        data: actual,
-      },
+      { name: "Cost so far", type: "line", showSymbol: false, color: PALETTE[0], data: actual },
       {
         name: "Projected",
         type: "line",

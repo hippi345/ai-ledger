@@ -40,10 +40,7 @@ export function Chart({ option, label, height = 280, onClick }: Props) {
     if (!el.current) return;
     const c = echarts.init(el.current);
     chart.current = c;
-    const ro =
-      typeof ResizeObserver === "undefined"
-        ? null
-        : new ResizeObserver(() => c.resize());
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => c.resize());
     ro?.observe(el.current);
     return () => {
       ro?.disconnect();
@@ -59,20 +56,12 @@ export function Chart({ option, label, height = 280, onClick }: Props) {
   useEffect(() => {
     const c = chart.current;
     if (!c || !onClick) return;
-    const h = (p: unknown) =>
-      onClick(p as { name: string; seriesName?: string });
+    const h = (p: unknown) => onClick(p as { name: string; seriesName?: string });
     c.on("click", h);
     return () => {
       c.off("click", h);
     };
   }, [onClick]);
 
-  return (
-    <div
-      ref={el}
-      role="img"
-      aria-label={label}
-      style={{ width: "100%", height }}
-    />
-  );
+  return <div ref={el} role="img" aria-label={label} style={{ width: "100%", height }} />;
 }

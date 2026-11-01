@@ -31,11 +31,7 @@ export function UnknownModelsPanel({ models, onAddPrice }: Props) {
                 <td>{m.tokens.toLocaleString()}</td>
                 <td>{m.lastSeen.slice(0, 10)}</td>
                 <td>
-                  <button
-                    type="button"
-                    onClick={() => onAddPrice(m.model)}
-                    aria-label={`Add price for ${m.model}`}
-                  >
+                  <button type="button" onClick={() => onAddPrice(m.model)} aria-label={`Add price for ${m.model}`}>
                     Add price
                   </button>
                 </td>

@@ -1,7 +1,4 @@
-import type {
-  Candidate,
-  SourceInfo_Serialize as SourceInfo,
-} from "../bindings";
+import type { Candidate, SourceInfo_Serialize as SourceInfo } from "../bindings";
 
 const READER_NAMES: Record<string, string> = {
   cursor: "Cursor",
@@ -30,23 +27,13 @@ export interface SourcesPanelProps {
 }
 
 /** Settings → Sources: configured sources with health, plus detected ones to add. */
-export function SourcesPanel({
-  sources,
-  candidates,
-  busy,
-  onDetect,
-  onAdd,
-  onToggle,
-}: SourcesPanelProps) {
+export function SourcesPanel({ sources, candidates, busy, onDetect, onAdd, onToggle }: SourcesPanelProps) {
   const pending = candidates.filter((c) => !c.added);
   return (
     <section aria-labelledby="sources-heading">
       <h2 id="sources-heading">Sources</h2>
       {sources.length === 0 ? (
-        <p>
-          No sources yet. Detect the AI apps on this machine to start tracking
-          usage.
-        </p>
+        <p>No sources yet. Detect the AI apps on this machine to start tracking usage.</p>
       ) : (
         <ul aria-label="Configured sources">
           {sources.map((s) => (
@@ -62,9 +49,7 @@ export function SourcesPanel({
               </label>{" "}
               <span>{TIER_NAMES[s.tier] ?? `Tier ${s.tier}`}</span>{" "}
               <span role="status" data-health={s.health}>
-                {s.health === "unhealthy"
-                  ? `Error: ${s.error ?? "unknown"}`
-                  : s.health}
+                {s.health === "unhealthy" ? `Error: ${s.error ?? "unknown"}` : s.health}
               </span>
             </li>
           ))}

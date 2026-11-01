@@ -12,9 +12,7 @@ export function useIngested(onIngested: (e: IngestedEvent) => void) {
   useEffect(() => {
     let stop: (() => void) | undefined;
     let cancelled = false;
-    void listen<IngestedEvent>(INGESTED_EVENT, (e) =>
-      cb.current(e.payload),
-    ).then((un) => {
+    void listen<IngestedEvent>(INGESTED_EVENT, (e) => cb.current(e.payload)).then((un) => {
       if (cancelled) un();
       else stop = un;
     });

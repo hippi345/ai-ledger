@@ -15,12 +15,7 @@ test("cumulative actuals stop today and the dashed line reaches the projection",
     xAxis: { data: string[] };
     series: { data: (number | null)[]; lineStyle?: { type: string } }[];
   };
-  expect(o.xAxis.data).toEqual([
-    "2026-11-01",
-    "2026-11-02",
-    "2026-11-03",
-    "2026-11-04",
-  ]);
+  expect(o.xAxis.data).toEqual(["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04"]);
   expect(o.series[0].data).toEqual([2, 6, null, null]);
   expect(o.series[1].lineStyle?.type).toBe("dashed");
   expect(o.series[1].data).toEqual([null, 6, 9, 12]);
