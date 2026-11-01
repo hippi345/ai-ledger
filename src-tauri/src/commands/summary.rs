@@ -92,6 +92,7 @@ fn tool_rows(
             group_by: vec![by],
             app: vec![],
             mcp_server: vec![],
+            tool: vec![],
             metric,
         },
     )

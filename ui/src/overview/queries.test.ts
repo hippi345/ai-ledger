@@ -30,7 +30,7 @@ test("usage queries carry the range and usage filters", () => {
   expect(breakdownQuery(r, {}, "app").groupBy).toEqual(["app"]);
 });
 
-test("tool queries use app and MCP filters only", () => {
+test("tool queries use app, MCP and tool filters", () => {
   expect(toolQuery(r, f, "failures")).toEqual({
     since: "2026-10-26",
     until: "2026-11-02",
@@ -38,6 +38,7 @@ test("tool queries use app and MCP filters only", () => {
     groupBy: ["tool"],
     app: ["cursor"],
     mcpServer: ["github"],
+    tool: ["Read"],
     metric: "failures",
     top: 10,
   });

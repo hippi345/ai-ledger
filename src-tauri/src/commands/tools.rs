@@ -38,6 +38,9 @@ pub struct ToolAggQuery {
     pub group_by: Vec<ToolAggDim>,
     pub app: Vec<String>,
     pub mcp_server: Vec<String>,
+    /// Tool names to keep (empty or omitted = all).
+    #[serde(default)]
+    pub tool: Vec<String>,
     pub metric: ToolAggMetric,
     /// Keep the N largest groups and fold the rest into "Other" (0 or null = all).
     pub top: Option<u32>,
@@ -65,6 +68,7 @@ pub fn run(state: &AppState, q: &ToolAggQuery) -> IpcResult<Vec<AggRow>> {
             .collect(),
         app: q.app.clone(),
         mcp_server: q.mcp_server.clone(),
+        tool: q.tool.clone(),
         metric: match q.metric {
             ToolAggMetric::Calls => ToolMetric::Calls,
             ToolAggMetric::Failures => ToolMetric::Failures,

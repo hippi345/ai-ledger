@@ -52,11 +52,12 @@ const q = (
   groupBy,
   app: f.app ?? [],
   mcpServer: f.mcp ?? [],
+  tool: f.tool ?? [],
   metric,
   top,
 });
 
-/** Tools & MCP page data. Tool filters narrow the table client-side (the backend filters by app and MCP only). */
+/** Tools & MCP page data; app, MCP and tool filters apply in the backend. */
 export async function loadTools(
   r: DateRange,
   f: FilterSearch,
@@ -77,22 +78,19 @@ export async function loadTools(
   const k = (keys: string[]) => keys.join("\u0000");
   const fail = new Map(failures.map((x) => [k(x.keys), x.value ?? 0]));
   const dur = new Map(duration.map((x) => [k(x.keys), x.value ?? 0]));
-  const only = f.tool ?? [];
-  const rows = calls
-    .filter((x) => only.length === 0 || only.includes(x.keys[0]))
-    .map((x): Cell[] => {
-      const n = x.value ?? 0;
-      const fl = fail.get(k(x.keys)) ?? 0;
-      const d = dur.get(k(x.keys)) ?? 0;
-      return [
-        x.keys[0],
-        x.keys[1],
-        n,
-        fl,
-        n ? Math.round((fl / n) * 1000) / 10 : null,
-        n ? Math.round(d / n) : null,
-      ];
-    });
+  const rows = calls.map((x): Cell[] => {
+    const n = x.value ?? 0;
+    const fl = fail.get(k(x.keys)) ?? 0;
+    const d = dur.get(k(x.keys)) ?? 0;
+    return [
+      x.keys[0],
+      x.keys[1],
+      n,
+      fl,
+      n ? Math.round((fl / n) * 1000) / 10 : null,
+      n ? Math.round(d / n) : null,
+    ];
+  });
   return {
     totals: {
       calls: rows.reduce((s, r) => s + (r[2] as number), 0),

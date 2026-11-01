@@ -180,6 +180,9 @@ pub struct ToolQuery {
     pub app: Vec<String>,
     #[serde(default)]
     pub mcp_server: Vec<String>,
+    /// Tool names to keep (empty = all).
+    #[serde(default)]
+    pub tool: Vec<String>,
     pub metric: ToolMetric,
 }
 
@@ -205,7 +208,11 @@ pub fn aggregate_tools(conn: &Connection, q: &ToolQuery) -> Result<Vec<Row>> {
         q.grain.tools_table(),
         &q.since,
         &q.until,
-        &[("app", &q.app), ("mcp_server", &q.mcp_server)],
+        &[
+            ("app", &q.app),
+            ("mcp_server", &q.mcp_server),
+            ("tool", &q.tool),
+        ],
         &cols,
         metric,
     )
@@ -369,6 +376,7 @@ mod tests {
             group_by: vec![ToolDim::McpServer],
             app: vec![],
             mcp_server: vec![],
+            tool: vec![],
             metric: ToolMetric::Calls,
         };
         assert_eq!(
@@ -383,6 +391,14 @@ mod tests {
         assert_eq!(
             aggregate_tools(&c, &q).unwrap(),
             vec![row(&["issues"], 4.0), row(&["search"], 2.0)]
+        );
+        let q = ToolQuery {
+            tool: vec!["search".into()],
+            ..q
+        };
+        assert_eq!(
+            aggregate_tools(&c, &q).unwrap(),
+            vec![row(&["search"], 2.0)]
         );
     }
 }

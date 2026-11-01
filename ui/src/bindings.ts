@@ -232,6 +232,8 @@ export type ToolAggQuery_Deserialize = {
 	groupBy: ToolAggDim[],
 	app: string[],
 	mcpServer: string[],
+	/**  Tool names to keep (empty or omitted = all). */
+	tool?: string[],
 	metric: ToolAggMetric,
 	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
 	top?: number | null,
@@ -248,6 +250,8 @@ export type ToolAggQuery_Serialize = {
 	groupBy: ToolAggDim[],
 	app: string[],
 	mcpServer: string[],
+	/**  Tool names to keep (empty or omitted = all). */
+	tool: string[],
 	metric: ToolAggMetric,
 	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
 	top: number | null,

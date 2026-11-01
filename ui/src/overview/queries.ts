@@ -46,7 +46,7 @@ export const breakdownQuery = (
   dim: "model" | "app",
 ) => agg(r, f, [dim], "tokens", TOP_SERIES);
 
-/** Calls or failures per tool; app and MCP filters apply, model/project don't. */
+/** Calls or failures per tool; app, MCP and tool filters apply, model/project don't. */
 export function toolQuery(
   r: DateRange,
   f: FilterSearch,
@@ -59,6 +59,7 @@ export function toolQuery(
     groupBy: ["tool"],
     app: f.app ?? [],
     mcpServer: f.mcp ?? [],
+    tool: f.tool ?? [],
     metric,
     top: TOP_TOOLS,
   };
