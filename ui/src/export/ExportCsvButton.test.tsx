@@ -1,24 +1,19 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { expect, test, vi } from "vitest";
+
+const save = vi.fn();
+const writeFile = vi.fn();
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  save: (...a: unknown[]) => save(...a),
+}));
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  writeFile: (...a: unknown[]) => writeFile(...a),
+}));
+
 import { ExportCsvButton } from "./ExportCsvButton";
 
-afterEach(() => vi.restoreAllMocks());
-
-test("downloads the rows as a named CSV file", async () => {
-  const blobs: Blob[] = [];
-  URL.createObjectURL = vi.fn((b: Blob) => {
-    blobs.push(b);
-    return "blob:x";
-  });
-  URL.revokeObjectURL = vi.fn();
-  const click = vi
-    .spyOn(HTMLAnchorElement.prototype, "click")
-    .mockImplementation(function (this: HTMLAnchorElement) {
-      expect(this.download).toMatch(
-        /^ai-ledger-tokens-\d{4}-\d{2}-\d{2}\.csv$/,
-      );
-      expect(this.href).toBe("blob:x");
-    });
+test("saves the rows as a named CSV file via the save dialog", async () => {
+  save.mockResolvedValue("/tmp/t.csv");
   render(
     <ExportCsvButton
       name="Tokens"
@@ -27,9 +22,13 @@ test("downloads the rows as a named CSV file", async () => {
     />,
   );
   fireEvent.click(screen.getByRole("button", { name: "Export Tokens as CSV" }));
-  expect(click).toHaveBeenCalledOnce();
-  expect(await blobs[0].text()).toBe("day,tokens\r\n2026-10-01,5\r\n");
-  expect(document.querySelector("a[download]")).toBeNull();
+  await waitFor(() => expect(writeFile).toHaveBeenCalled());
+  expect(save.mock.calls[0][0].defaultPath).toMatch(
+    /^ai-ledger-tokens-\d{4}-\d{2}-\d{2}\.csv$/,
+  );
+  expect(new TextDecoder().decode(writeFile.mock.calls[0][1])).toBe(
+    "day,tokens\r\n2026-10-01,5\r\n",
+  );
 });
 
 test("is disabled with no rows", () => {
