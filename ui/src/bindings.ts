@@ -42,6 +42,8 @@ export const commands = {
 	 *  server and biggest mover for this week when there is something to say.
 	 */
 	summaryCards: () => typedError<SummaryCard[], IpcError>(__TAURI_INVOKE("summary_cards")),
+	/**  Sums tool/MCP calls, failures or duration, grouped and filtered. */
+	aggregateTools: (query: ToolAggQuery_Deserialize) => typedError<AggRow[], IpcError>(__TAURI_INVOKE("aggregate_tools", { query })),
 };
 
 /* Types */
@@ -197,6 +199,48 @@ export type SourceInfo_Serialize = {
 export type SummaryCard = {
 	label: string,
 	text: string,
+};
+
+export type ToolAggDim = "bucket" | "app" | "tool" | "mcp_server";
+
+export type ToolAggMetric = "calls" | "failures" | "duration_ms";
+
+/**
+ *  A tool/MCP query. Dates are UTC `YYYY-MM-DD`, `since <= bucket < until`.
+ *  Calls without an MCP server have `mcpServer = ""`.
+ */
+export type ToolAggQuery = ToolAggQuery_Serialize | ToolAggQuery_Deserialize;
+
+/**
+ *  A tool/MCP query. Dates are UTC `YYYY-MM-DD`, `since <= bucket < until`.
+ *  Calls without an MCP server have `mcpServer = ""`.
+ */
+export type ToolAggQuery_Deserialize = {
+	since: string,
+	until: string,
+	grain: AggGrain,
+	groupBy: ToolAggDim[],
+	app: string[],
+	mcpServer: string[],
+	metric: ToolAggMetric,
+	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
+	top?: number | null,
+};
+
+/**
+ *  A tool/MCP query. Dates are UTC `YYYY-MM-DD`, `since <= bucket < until`.
+ *  Calls without an MCP server have `mcpServer = ""`.
+ */
+export type ToolAggQuery_Serialize = {
+	since: string,
+	until: string,
+	grain: AggGrain,
+	groupBy: ToolAggDim[],
+	app: string[],
+	mcpServer: string[],
+	metric: ToolAggMetric,
+	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
+	top: number | null,
 };
 
 /**  A model seen in events that has no price. */
