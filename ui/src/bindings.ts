@@ -31,6 +31,8 @@ export const commands = {
 	setPriceOverride: (price: PriceOverride) => typedError<number, IpcError>(__TAURI_INVOKE("set_price_override", { price })),
 	/**  Removes an override and re-prices all events. */
 	removePriceOverride: (model: string, effectiveFrom: string) => typedError<number, IpcError>(__TAURI_INVOKE("remove_price_override", { model, effectiveFrom })),
+	/**  Lists models seen in events that have no price, most-used first. */
+	listUnknownModels: () => typedError<UnknownModelInfo[], IpcError>(__TAURI_INVOKE("list_unknown_models")),
 };
 
 /* Types */
@@ -99,6 +101,15 @@ export type SourceInfo_Serialize = {
 	error: string | null,
 };
 
+/**  A model seen in events that has no price. */
+export type UnknownModelInfo = {
+	model: string,
+	events: number,
+	tokens: number,
+	firstSeen: string,
+	lastSeen: string,
+};
+
 export type Value = null | boolean | number | string | Value[] | { [key in string]: Value };
 
 /* Tauri Specta runtime */
@@ -110,3 +121,5 @@ async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; dat
         return { status: "error", error: e as any };
     }
 }
+
+[1m[91merror[0m: test failed, to rerun pass `-p ai-ledger --test ipc`
