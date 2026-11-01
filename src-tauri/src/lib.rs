@@ -1,5 +1,6 @@
 //! Tauri shell for AI Ledger.
 
+pub mod autostart;
 pub mod commands;
 pub mod error;
 pub mod ipc;
@@ -21,6 +22,10 @@ pub fn run() {
 
     #[allow(clippy::expect_used)]
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .invoke_handler(specta.invoke_handler())
         .on_window_event(|w, e| {
             // Minimize to tray: closing the window hides it while the tray is up.
@@ -37,7 +42,11 @@ pub fn run() {
             let dir = app.path().app_data_dir()?;
             let state = state::AppState::open(&dir)?;
             tracing::info!(dir = %dir.display(), "ledger opened");
+            let launch = autostart::wanted(&state);
             app.manage(state);
+            if let Err(e) = autostart::apply(app.handle(), launch) {
+                tracing::warn!(error = %e, "could not sync launch at login");
+            }
             if let Err(e) = tray::install(app.handle()) {
                 tracing::warn!(error = %e, "tray unavailable; closing the window quits");
             }

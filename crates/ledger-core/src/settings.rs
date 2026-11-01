@@ -16,6 +16,8 @@ pub mod keys {
     pub const HASH_PROJECT_NAMES: &str = "privacy.hash_project_names";
     /// Live ingestion paused. Default false.
     pub const LIVE_PAUSED: &str = "live.paused";
+    /// Start AI Ledger when the user logs in. Default false (opt-in).
+    pub const LAUNCH_AT_LOGIN: &str = "app.launch_at_login";
 }
 
 fn check_key(key: &str) -> Result<()> {

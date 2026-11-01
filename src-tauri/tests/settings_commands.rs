@@ -26,3 +26,13 @@ fn errors_carry_stable_codes() {
     assert_eq!(e.code, "invalid_input");
     assert!(e.message.contains("bad key"));
 }
+
+#[test]
+fn launch_at_login_is_opt_in() {
+    let s =
+        ai_ledger_lib::state::AppState::from_connection(ledger_core::db::open_in_memory().unwrap());
+    assert!(!ai_ledger_lib::autostart::wanted(&s));
+    ledger_core::settings::set(&s.db(), ledger_core::settings::keys::LAUNCH_AT_LOGIN, &true)
+        .unwrap();
+    assert!(ai_ledger_lib::autostart::wanted(&s));
+}
