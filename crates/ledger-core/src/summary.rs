@@ -59,6 +59,20 @@ pub fn change(pct: Option<f64>) -> Option<String> {
     })
 }
 
+/// Human name for a stored app id: `cursor` -> `Cursor`, `claude_code` ->
+/// `Claude Code`. Unknown ids are shown as stored.
+pub fn app_label(id: &str) -> String {
+    match id {
+        "cursor" => "Cursor".into(),
+        "claude_code" | "claude-code" => "Claude Code".into(),
+        "codex" => "Codex".into(),
+        "openai" => "OpenAI".into(),
+        "anthropic" => "Anthropic".into(),
+        "chatgpt-web" => "ChatGPT".into(),
+        _ => id.to_owned(),
+    }
+}
+
 /// Inputs for one period card.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PeriodSummary<'a> {
@@ -143,5 +157,12 @@ mod tests {
         s.tokens = 900.0;
         s.cost_usd = 0.02;
         assert_eq!(sentence(&s), "Today: 900 tokens, ~$0.02.");
+    }
+
+    #[test]
+    fn app_labels() {
+        assert_eq!(app_label("cursor"), "Cursor");
+        assert_eq!(app_label("claude_code"), "Claude Code");
+        assert_eq!(app_label("my-tool"), "my-tool");
     }
 }
