@@ -13,6 +13,13 @@ import { PricesSettings } from "./settings/PricesSettings";
 import { SourcesSettings } from "./settings/SourcesSettings";
 import { Summary } from "./summary/Summary";
 import { DateRangePicker } from "./filters/DateRangePicker";
+import { FilterBar } from "./filters/FilterBar";
+import {
+  FILTER_DIMS,
+  parseFilterSearch,
+  toggleFilter,
+  type FilterSearch,
+} from "./filters/filters";
 import {
   parseRangeSearch,
   resolveRange,
@@ -56,6 +63,30 @@ function GlobalRange() {
   );
 }
 
+/** Active filter chips, synced to the URL search. */
+function GlobalFilters() {
+  const search = useSearch({ strict: false }) as FilterSearch;
+  const navigate = useNavigate();
+  const set = (next: FilterSearch) =>
+    void navigate({
+      to: ".",
+      search: (prev: Record<string, unknown>) => {
+        const out: Record<string, unknown> = { ...prev };
+        for (const d of FILTER_DIMS) out[d] = next[d];
+        return out;
+      },
+    });
+  return (
+    <FilterBar
+      filters={parseFilterSearch(search)}
+      onRemove={(dim, value) =>
+        set(toggleFilter(parseFilterSearch(search), dim, value))
+      }
+      onClear={() => set({})}
+    />
+  );
+}
+
 function Shell() {
   return (
     <div className="shell">
@@ -79,6 +110,7 @@ function Shell() {
       <main>
         <header>
           <GlobalRange />
+          <GlobalFilters />
         </header>
         <Outlet />
       </main>

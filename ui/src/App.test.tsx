@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { vi } from "vitest";
 
@@ -44,4 +44,16 @@ test("the date range lives in the URL", async () => {
   fireEvent.change(select, { target: { value: "month" } });
   await screen.findByDisplayValue("This month");
   expect(history.location.search).toContain("range=month");
+});
+
+test("filter chips come from the URL and can be removed", async () => {
+  const history = at("/?model=%5B%22gpt-5%22%5D");
+  render(<App history={history} />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Remove Model gpt-5" }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole("toolbar", { name: "Filters" })).toBeNull(),
+  );
+  expect(history.location.search).not.toContain("gpt-5");
 });
