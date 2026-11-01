@@ -17,12 +17,14 @@ type Props = {
   layout: Widget[];
   onChange: (layout: Widget[]) => void;
   render: (w: Widget) => React.ReactNode;
+  /** Restores the default layout. */
+  onReset?: () => void;
 };
 
 const Grid = WidthProvider(GridLayout);
 
 /** The Overview grid (drag a widget by its title, resize from the corner): each widget with a remove button, plus an Add widget control. */
-export function WidgetGrid({ layout, onChange, render }: Props) {
+export function WidgetGrid({ layout, onChange, render, onReset }: Props) {
   const [kind, setKind] = useState<WidgetKind>("summary");
   return (
     <div>
@@ -43,6 +45,11 @@ export function WidgetGrid({ layout, onChange, render }: Props) {
         <button type="button" onClick={() => onChange(addWidget(layout, kind))}>
           Add widget
         </button>
+        {onReset && (
+          <button type="button" onClick={onReset}>
+            Reset layout
+          </button>
+        )}
       </div>
       <Grid
         className="widget-grid"

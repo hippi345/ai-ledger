@@ -26,3 +26,17 @@ test("adds the chosen widget and removes one", () => {
   fireEvent.click(screen.getByRole("button", { name: "Remove Summary cards" }));
   expect(onChange).toHaveBeenLastCalledWith([]);
 });
+
+test("reset button appears when resettable", () => {
+  const onReset = vi.fn();
+  render(
+    <WidgetGrid
+      layout={[]}
+      onChange={vi.fn()}
+      render={() => null}
+      onReset={onReset}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
+  expect(onReset).toHaveBeenCalled();
+});
