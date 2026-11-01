@@ -6,11 +6,16 @@ test("renders one card per period", () => {
     <SummaryCards
       cards={[
         { label: "Today", text: "Today: no usage yet." },
-        { label: "This week", text: "This week: 4.2M tokens, ~$18, mostly cursor + gpt-5, up 30%." },
+        {
+          label: "This week",
+          text: "This week: 4.2M tokens, ~$18, mostly cursor + gpt-5, up 30%.",
+        },
       ]}
     />,
   );
-  expect(screen.getByRole("article", { name: "This week" })).toHaveTextContent("up 30%");
+  expect(screen.getByRole("article", { name: "This week" })).toHaveTextContent(
+    "up 30%",
+  );
   expect(screen.getAllByRole("article")).toHaveLength(2);
 });
 

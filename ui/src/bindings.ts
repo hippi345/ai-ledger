@@ -7,45 +7,80 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 
 /** Commands */
 export const commands = {
-	/**  Returns the app and core library versions. */
-	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
-	/**  Returns a setting's stored JSON value, or null when unset. */
-	getSetting: (key: string) => typedError<Value | null, IpcError>(__TAURI_INVOKE("get_setting", { key })),
-	/**  Stores a setting. */
-	setSetting: (key: string, value: Value) => typedError<null, IpcError>(__TAURI_INVOKE("set_setting", { key, value })),
-	/**  Removes a setting so its default applies. Returns whether it was set. */
-	resetSetting: (key: string) => typedError<boolean, IpcError>(__TAURI_INVOKE("reset_setting", { key })),
-	/**  Lists all stored settings, sorted by key. */
-	listSettings: () => typedError<SettingEntry[], IpcError>(__TAURI_INVOKE("list_settings")),
-	/**  Lists configured sources with their health. */
-	listSources: () => typedError<SourceInfo_Serialize[], IpcError>(__TAURI_INVOKE("list_sources")),
-	/**  Looks for AI apps' data on this machine. */
-	detectSources: () => typedError<Candidate[], IpcError>(__TAURI_INVOKE("detect_sources")),
-	/**  Adds a detected (or user-built) source. Returns its id. */
-	addSource: (candidate: Candidate) => typedError<number, IpcError>(__TAURI_INVOKE("add_source", { candidate })),
-	/**  Enables or disables a source. */
-	setSourceEnabled: (id: number, enabled: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_source_enabled", { id, enabled })),
-	/**  Lists user price overrides. */
-	listPriceOverrides: () => typedError<PriceOverride[], IpcError>(__TAURI_INVOKE("list_price_overrides")),
-	/**  Adds or replaces an override and re-prices all events. */
-	setPriceOverride: (price: PriceOverride) => typedError<number, IpcError>(__TAURI_INVOKE("set_price_override", { price })),
-	/**  Removes an override and re-prices all events. */
-	removePriceOverride: (model: string, effectiveFrom: string) => typedError<number, IpcError>(__TAURI_INVOKE("remove_price_override", { model, effectiveFrom })),
-	/**  Lists models seen in events that have no price, most-used first. */
-	listUnknownModels: () => typedError<UnknownModelInfo[], IpcError>(__TAURI_INVOKE("list_unknown_models")),
-	/**  Turns launch at login on or off and saves the choice. */
-	setLaunchAtLogin: (on: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
-	/**  Sums a metric over rollups, grouped and filtered (spec §8). */
-	aggregate: (query: AggQuery_Deserialize) => typedError<AggResult_Serialize, IpcError>(__TAURI_INVOKE("aggregate", { query })),
-	/**
-	 *  Today / this week / this month summary sentences, plus top tool, top MCP
-	 *  server and biggest mover for this week when there is something to say.
-	 */
-	summaryCards: () => typedError<SummaryCard[], IpcError>(__TAURI_INVOKE("summary_cards")),
-	/**  Sums tool/MCP calls, failures or duration, grouped and filtered. */
-	aggregateTools: (query: ToolAggQuery_Deserialize) => typedError<AggRow[], IpcError>(__TAURI_INVOKE("aggregate_tools", { query })),
-	/**  Activity by weekday and hour for a date range. */
-	activityHeatmap: (since: string, until: string) => typedError<HeatCell[], IpcError>(__TAURI_INVOKE("activity_heatmap", { since, until })),
+  /**  Returns the app and core library versions. */
+  appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
+  /**  Returns a setting's stored JSON value, or null when unset. */
+  getSetting: (key: string) =>
+    typedError<Value | null, IpcError>(__TAURI_INVOKE("get_setting", { key })),
+  /**  Stores a setting. */
+  setSetting: (key: string, value: Value) =>
+    typedError<null, IpcError>(__TAURI_INVOKE("set_setting", { key, value })),
+  /**  Removes a setting so its default applies. Returns whether it was set. */
+  resetSetting: (key: string) =>
+    typedError<boolean, IpcError>(__TAURI_INVOKE("reset_setting", { key })),
+  /**  Lists all stored settings, sorted by key. */
+  listSettings: () =>
+    typedError<SettingEntry[], IpcError>(__TAURI_INVOKE("list_settings")),
+  /**  Lists configured sources with their health. */
+  listSources: () =>
+    typedError<SourceInfo_Serialize[], IpcError>(
+      __TAURI_INVOKE("list_sources"),
+    ),
+  /**  Looks for AI apps' data on this machine. */
+  detectSources: () =>
+    typedError<Candidate[], IpcError>(__TAURI_INVOKE("detect_sources")),
+  /**  Adds a detected (or user-built) source. Returns its id. */
+  addSource: (candidate: Candidate) =>
+    typedError<number, IpcError>(__TAURI_INVOKE("add_source", { candidate })),
+  /**  Enables or disables a source. */
+  setSourceEnabled: (id: number, enabled: boolean) =>
+    typedError<null, IpcError>(
+      __TAURI_INVOKE("set_source_enabled", { id, enabled }),
+    ),
+  /**  Lists user price overrides. */
+  listPriceOverrides: () =>
+    typedError<PriceOverride[], IpcError>(
+      __TAURI_INVOKE("list_price_overrides"),
+    ),
+  /**  Adds or replaces an override and re-prices all events. */
+  setPriceOverride: (price: PriceOverride) =>
+    typedError<number, IpcError>(
+      __TAURI_INVOKE("set_price_override", { price }),
+    ),
+  /**  Removes an override and re-prices all events. */
+  removePriceOverride: (model: string, effectiveFrom: string) =>
+    typedError<number, IpcError>(
+      __TAURI_INVOKE("remove_price_override", { model, effectiveFrom }),
+    ),
+  /**  Lists models seen in events that have no price, most-used first. */
+  listUnknownModels: () =>
+    typedError<UnknownModelInfo[], IpcError>(
+      __TAURI_INVOKE("list_unknown_models"),
+    ),
+  /**  Turns launch at login on or off and saves the choice. */
+  setLaunchAtLogin: (on: boolean) =>
+    typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
+  /**  Sums a metric over rollups, grouped and filtered (spec §8). */
+  aggregate: (query: AggQuery_Deserialize) =>
+    typedError<AggResult_Serialize, IpcError>(
+      __TAURI_INVOKE("aggregate", { query }),
+    ),
+  /**
+   *  Today / this week / this month summary sentences, plus top tool, top MCP
+   *  server and biggest mover for this week when there is something to say.
+   */
+  summaryCards: () =>
+    typedError<SummaryCard[], IpcError>(__TAURI_INVOKE("summary_cards")),
+  /**  Sums tool/MCP calls, failures or duration, grouped and filtered. */
+  aggregateTools: (query: ToolAggQuery_Deserialize) =>
+    typedError<AggRow[], IpcError>(
+      __TAURI_INVOKE("aggregate_tools", { query }),
+    ),
+  /**  Activity by weekday and hour for a date range. */
+  activityHeatmap: (since: string, until: string) =>
+    typedError<HeatCell[], IpcError>(
+      __TAURI_INVOKE("activity_heatmap", { since, until }),
+    ),
 };
 
 /* Types */
@@ -54,15 +89,15 @@ export type AggDim = "bucket" | "app" | "model" | "project";
 export type AggFilters = AggFilters_Serialize | AggFilters_Deserialize;
 
 export type AggFilters_Deserialize = {
-	app?: string[],
-	model?: string[],
-	project?: string[],
+  app?: string[];
+  model?: string[];
+  project?: string[];
 };
 
 export type AggFilters_Serialize = {
-	app: string[],
-	model: string[],
-	project: string[],
+  app: string[];
+  model: string[];
+  project: string[];
 };
 
 export type AggGrain = "day" | "week" | "month";
@@ -74,108 +109,108 @@ export type AggQuery = AggQuery_Serialize | AggQuery_Deserialize;
 
 /**  An aggregate request. Dates are UTC `YYYY-MM-DD`, `since <= bucket < until`. */
 export type AggQuery_Deserialize = {
-	since: string,
-	until: string,
-	grain: AggGrain,
-	groupBy: AggDim[],
-	filters: AggFilters_Deserialize,
-	metric: AggMetric,
-	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
-	top?: number | null,
-	/**  Also total the previous equal-length period. */
-	compare: boolean,
+  since: string;
+  until: string;
+  grain: AggGrain;
+  groupBy: AggDim[];
+  filters: AggFilters_Deserialize;
+  metric: AggMetric;
+  /**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
+  top?: number | null;
+  /**  Also total the previous equal-length period. */
+  compare: boolean;
 };
 
 /**  An aggregate request. Dates are UTC `YYYY-MM-DD`, `since <= bucket < until`. */
 export type AggQuery_Serialize = {
-	since: string,
-	until: string,
-	grain: AggGrain,
-	groupBy: AggDim[],
-	filters: AggFilters_Serialize,
-	metric: AggMetric,
-	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
-	top: number | null,
-	/**  Also total the previous equal-length period. */
-	compare: boolean,
+  since: string;
+  until: string;
+  grain: AggGrain;
+  groupBy: AggDim[];
+  filters: AggFilters_Serialize;
+  metric: AggMetric;
+  /**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
+  top: number | null;
+  /**  Also total the previous equal-length period. */
+  compare: boolean;
 };
 
 export type AggResult = AggResult_Serialize | AggResult_Deserialize;
 
 export type AggResult_Deserialize = {
-	rows: AggRow[],
-	total: number | null,
-	/**  Total for the previous period, when `compare` was set. */
-	previousTotal?: number | null,
-	/**  Percent change against it; null when it was zero or not requested. */
-	changePct?: number | null,
+  rows: AggRow[];
+  total: number | null;
+  /**  Total for the previous period, when `compare` was set. */
+  previousTotal?: number | null;
+  /**  Percent change against it; null when it was zero or not requested. */
+  changePct?: number | null;
 };
 
 export type AggResult_Serialize = {
-	rows: AggRow[],
-	total: number | null,
-	/**  Total for the previous period, when `compare` was set. */
-	previousTotal: number | null,
-	/**  Percent change against it; null when it was zero or not requested. */
-	changePct: number | null,
+  rows: AggRow[];
+  total: number | null;
+  /**  Total for the previous period, when `compare` was set. */
+  previousTotal: number | null;
+  /**  Percent change against it; null when it was zero or not requested. */
+  changePct: number | null;
 };
 
 export type AggRow = {
-	keys: string[],
-	value: number | null,
+  keys: string[];
+  value: number | null;
 };
 
 /**  Basic facts about the running app, shown in the About box. */
 export type AppInfo = {
-	appVersion: string,
-	coreVersion: string,
+  appVersion: string;
+  coreVersion: string;
 };
 
 /**  A source the user can enable, found by a reader. */
 export type Candidate = {
-	readerId: string,
-	label: string,
-	config: Value,
-	/**  Whether an identical source is already configured. */
-	added: boolean,
+  readerId: string;
+  label: string;
+  config: Value;
+  /**  Whether an identical source is already configured. */
+  added: boolean;
 };
 
 /**  One heatmap cell. `weekday` 0 = Monday, `hour` 0..=23 UTC. */
 export type HeatCell = {
-	weekday: number,
-	hour: number,
-	events: number,
-	tokens: number | null,
+  weekday: number;
+  hour: number;
+  events: number;
+  tokens: number | null;
 };
 
 /**  Payload of [`INGESTED_EVENT`]: which source changed and how much. */
 export type IngestedEvent = {
-	sourceId: number,
-	inserted: number,
-	updated: number,
+  sourceId: number;
+  inserted: number;
+  updated: number;
 };
 
 /**  `{ code, message }`; `code` is stable for the UI to switch on. */
 export type IpcError = {
-	code: string,
-	message: string,
+  code: string;
+  message: string;
 };
 
 /**  A user price override, USD per million tokens. */
 export type PriceOverride = {
-	model: string,
-	/**  `YYYY-MM-DD` (UTC). */
-	effectiveFrom: string,
-	input: number | null,
-	output: number | null,
-	cacheRead: number | null,
-	cacheWrite: number | null,
+  model: string;
+  /**  `YYYY-MM-DD` (UTC). */
+  effectiveFrom: string;
+  input: number | null;
+  output: number | null;
+  cacheRead: number | null;
+  cacheWrite: number | null;
 };
 
 /**  One stored setting. */
 export type SettingEntry = {
-	key: string,
-	value: Value,
+  key: string;
+  value: Value;
 };
 
 /**  A configured source with its latest health. */
@@ -183,32 +218,32 @@ export type SourceInfo = SourceInfo_Serialize | SourceInfo_Deserialize;
 
 /**  A configured source with its latest health. */
 export type SourceInfo_Deserialize = {
-	id: number,
-	readerId: string,
-	tier: number,
-	config: Value,
-	enabled: boolean,
-	/**  `unknown`, `healthy`, or `unhealthy`. */
-	health: string,
-	error?: string | null,
+  id: number;
+  readerId: string;
+  tier: number;
+  config: Value;
+  enabled: boolean;
+  /**  `unknown`, `healthy`, or `unhealthy`. */
+  health: string;
+  error?: string | null;
 };
 
 /**  A configured source with its latest health. */
 export type SourceInfo_Serialize = {
-	id: number,
-	readerId: string,
-	tier: number,
-	config: Value,
-	enabled: boolean,
-	/**  `unknown`, `healthy`, or `unhealthy`. */
-	health: string,
-	error: string | null,
+  id: number;
+  readerId: string;
+  tier: number;
+  config: Value;
+  enabled: boolean;
+  /**  `unknown`, `healthy`, or `unhealthy`. */
+  health: string;
+  error: string | null;
 };
 
 /**  One summary card. */
 export type SummaryCard = {
-	label: string,
-	text: string,
+  label: string;
+  text: string;
 };
 
 export type ToolAggDim = "bucket" | "app" | "tool" | "mcp_server";
@@ -226,15 +261,15 @@ export type ToolAggQuery = ToolAggQuery_Serialize | ToolAggQuery_Deserialize;
  *  Calls without an MCP server have `mcpServer = ""`.
  */
 export type ToolAggQuery_Deserialize = {
-	since: string,
-	until: string,
-	grain: AggGrain,
-	groupBy: ToolAggDim[],
-	app: string[],
-	mcpServer: string[],
-	metric: ToolAggMetric,
-	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
-	top?: number | null,
+  since: string;
+  until: string;
+  grain: AggGrain;
+  groupBy: ToolAggDim[];
+  app: string[];
+  mcpServer: string[];
+  metric: ToolAggMetric;
+  /**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
+  top?: number | null;
 };
 
 /**
@@ -242,34 +277,37 @@ export type ToolAggQuery_Deserialize = {
  *  Calls without an MCP server have `mcpServer = ""`.
  */
 export type ToolAggQuery_Serialize = {
-	since: string,
-	until: string,
-	grain: AggGrain,
-	groupBy: ToolAggDim[],
-	app: string[],
-	mcpServer: string[],
-	metric: ToolAggMetric,
-	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
-	top: number | null,
+  since: string;
+  until: string;
+  grain: AggGrain;
+  groupBy: ToolAggDim[];
+  app: string[];
+  mcpServer: string[];
+  metric: ToolAggMetric;
+  /**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
+  top: number | null;
 };
 
 /**  A model seen in events that has no price. */
 export type UnknownModelInfo = {
-	model: string,
-	events: number,
-	tokens: number,
-	firstSeen: string,
-	lastSeen: string,
+  model: string;
+  events: number;
+  tokens: number;
+  firstSeen: string;
+  lastSeen: string;
 };
 
-export type Value = null | boolean | number | string | Value[] | { [key in string]: Value };
+export type Value =
+  null | boolean | number | string | Value[] | { [key in string]: Value };
 
 /* Tauri Specta runtime */
-async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
-    try {
-        return { status: "ok", data: await result };
-    } catch (e) {
-        if (e instanceof Error) throw e;
-        return { status: "error", error: e as any };
-    }
+async function typedError<T, E>(
+  result: Promise<T>,
+): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+  try {
+    return { status: "ok", data: await result };
+  } catch (e) {
+    if (e instanceof Error) throw e;
+    return { status: "error", error: e as any };
+  }
 }

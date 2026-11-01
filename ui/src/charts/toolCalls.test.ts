@@ -8,7 +8,10 @@ test("splits each tool's calls into succeeded and failed, largest on top", () =>
       { keys: ["Other"], value: 20 },
     ],
     [{ keys: ["read_file"], value: 1 }],
-  ) as { yAxis: { data: string[] }; series: { name: string; data: number[] }[] };
+  ) as {
+    yAxis: { data: string[] };
+    series: { name: string; data: number[] }[];
+  };
   expect(o.yAxis.data).toEqual(["Other", "search", "read_file"]);
   expect(o.series[0].data).toEqual([20, 4, 8]);
   expect(o.series[1].data).toEqual([0, 0, 1]);

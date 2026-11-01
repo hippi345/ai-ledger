@@ -17,10 +17,23 @@ const RATES = [
   ["cacheWrite", "Cache write"],
 ] as const;
 
-const empty = { model: "", effectiveFrom: "", input: "", output: "", cacheRead: "0", cacheWrite: "0" };
+const empty = {
+  model: "",
+  effectiveFrom: "",
+  input: "",
+  output: "",
+  cacheRead: "0",
+  cacheWrite: "0",
+};
 
 /** Lists user price overrides (USD per million tokens) and adds new ones. */
-export function PricesPanel({ overrides, busy, onSave, onRemove, prefillModel }: Props) {
+export function PricesPanel({
+  overrides,
+  busy,
+  onSave,
+  onRemove,
+  prefillModel,
+}: Props) {
   const [form, setForm] = useState(empty);
   useEffect(() => {
     if (prefillModel) setForm((f) => ({ ...f, model: prefillModel }));
@@ -42,7 +55,10 @@ export function PricesPanel({ overrides, busy, onSave, onRemove, prefillModel }:
   return (
     <section aria-labelledby="prices-h">
       <h2 id="prices-h">Price overrides</h2>
-      <p>Your own rates, in USD per million tokens. They replace bundled prices from the date you pick.</p>
+      <p>
+        Your own rates, in USD per million tokens. They replace bundled prices
+        from the date you pick.
+      </p>
       {overrides.length === 0 ? (
         <p>No overrides. Bundled estimates apply.</p>
       ) : (
@@ -85,12 +101,25 @@ export function PricesPanel({ overrides, busy, onSave, onRemove, prefillModel }:
           Model <input required value={form.model} onChange={set("model")} />
         </label>
         <label>
-          From <input required type="date" value={form.effectiveFrom} onChange={set("effectiveFrom")} />
+          From{" "}
+          <input
+            required
+            type="date"
+            value={form.effectiveFrom}
+            onChange={set("effectiveFrom")}
+          />
         </label>
         {RATES.map(([k, l]) => (
           <label key={k}>
             {l}{" "}
-            <input required type="number" min="0" step="any" value={form[k]} onChange={set(k)} />
+            <input
+              required
+              type="number"
+              min="0"
+              step="any"
+              value={form[k]}
+              onChange={set(k)}
+            />
           </label>
         ))}
         <button type="submit" disabled={busy}>

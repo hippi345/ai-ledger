@@ -13,7 +13,12 @@ test("aligns series on shared buckets, largest first, Other last", () => {
     "tokens",
   ) as { xAxis: { data: string[] }; series: S[] };
   expect(opt.xAxis.data).toEqual(["2026-11-01", "2026-11-02", "2026-11-03"]);
-  expect(opt.series.map((s) => s.name)).toEqual(["claude", "gpt-5", "Unknown", "Other"]);
+  expect(opt.series.map((s) => s.name)).toEqual([
+    "claude",
+    "gpt-5",
+    "Unknown",
+    "Other",
+  ]);
   expect(opt.series[0].data).toEqual([0, 30, 0]);
   expect(opt.series.every((s) => s.stack === "total")).toBe(true);
 });
