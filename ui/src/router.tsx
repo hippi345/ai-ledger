@@ -13,6 +13,7 @@ import {
 import { PricesSettings } from "./settings/PricesSettings";
 import { SourcesSettings } from "./settings/SourcesSettings";
 import { Overview } from "./overview/Overview";
+import { DimensionPage } from "./pages/DimensionPage";
 import { DateRangePicker } from "./filters/DateRangePicker";
 import { FilterBar } from "./filters/FilterBar";
 import { parseFilterSearch, type FilterSearch } from "./filters/filters";
@@ -179,6 +180,12 @@ const routes = PAGES.map((p) =>
         return (
           <Page title={p.label}>
             <Overview />
+          </Page>
+        );
+      if (p.path === "/apps")
+        return (
+          <Page title={p.label}>
+            <DimensionPage dim="app" />
           </Page>
         );
       if (p.path === "/settings")
