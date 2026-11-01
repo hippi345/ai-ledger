@@ -14,7 +14,7 @@ import { PricesSettings } from "./settings/PricesSettings";
 import { SourcesSettings } from "./settings/SourcesSettings";
 import { Overview } from "./overview/Overview";
 import { DimensionPage } from "./pages/DimensionPage";
-import { SessionsPage } from "./pages/SessionsPage";
+import { Sessions } from "./pages/Sessions";
 import { ToolsPage } from "./pages/ToolsPage";
 import { DateRangePicker } from "./filters/DateRangePicker";
 import { FilterBar } from "./filters/FilterBar";
@@ -211,7 +211,7 @@ const routes = PAGES.map((p) =>
       if (p.path === "/sessions")
         return (
           <Page title={p.label}>
-            <SessionsPage />
+            <Sessions />
           </Page>
         );
       if (p.path === "/settings")
