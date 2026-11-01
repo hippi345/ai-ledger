@@ -11,6 +11,8 @@ Nothing leaves your machine: no telemetry, no cloud, no LLM calls.
 Early development. See the [design spec](docs/superpowers/specs/2026-10-31-ai-ledger-design.md)
 for the architecture and PR plan.
 
+Guides: [user guide](docs/user-guide.md) · [writing a reader](docs/writing-a-reader.md) · [packaging](docs/packaging.md)
+
 ## Layout
 
 ```
