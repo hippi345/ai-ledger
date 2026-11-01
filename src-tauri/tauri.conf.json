@@ -14,7 +14,7 @@
         "title": "AI Ledger",
         "width": 1280,
         "height": 800,
-        "minWidth": 900,
+        "minWidth": 1024,
         "minHeight": 600
       }
     ],

@@ -1,0 +1,104 @@
+/* App shell: fixed sidebar + independently scrolling main (redesign §4.1). */
+.shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.shell > nav {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-4) var(--space-3);
+    background: var(--bg-subtle);
+    border-right: 1px solid var(--border);
+}
+
+.shell > nav > h1 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2) var(--space-5);
+    font: 600 14px/20px var(--font-sans);
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+
+.shell > nav > h1::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    flex: none;
+    border-radius: 4px;
+    background: var(--accent);
+}
+
+.shell > nav > ul {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.shell > nav > ul > li:last-child {
+    margin-top: auto;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
+}
+
+.shell > nav a {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    font: 500 var(--text-sm) var(--font-sans);
+    color: var(--text-muted);
+    transition:
+        background-color var(--dur) var(--ease),
+        color var(--dur) var(--ease);
+}
+
+.shell > nav a:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.shell > nav a[aria-current="page"] {
+    background: var(--surface-active);
+    color: var(--text);
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.shell > nav > p {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-2);
+    font: var(--text-xs) var(--font-sans);
+    color: var(--text-subtle);
+}
+
+.shell > nav > p::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: var(--radius-full);
+    background: var(--success);
+    opacity: 0.8;
+}
+
+.shell > main {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.shell > main > section {
+    max-width: var(--content-max);
+    padding: var(--space-6) var(--space-8) var(--space-10);
+}
