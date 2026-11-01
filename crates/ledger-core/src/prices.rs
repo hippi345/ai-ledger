@@ -50,6 +50,21 @@ pub struct ModelPrice {
     /// page, e.g. `["effective_from"]` when the launch date is approximate.
     #[serde(default)]
     pub estimated: Vec<String>,
+    /// Service-tier multipliers on Standard rates, e.g. OpenAI Batch 0.5.
+    #[serde(default)]
+    pub service_tiers: ServiceTierRates,
+}
+
+/// Multipliers for non-standard service tiers; absent means not offered.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ServiceTierRates {
+    #[serde(default)]
+    pub batch: Option<f64>,
+    #[serde(default)]
+    pub flex: Option<f64>,
+    #[serde(default)]
+    pub fast: Option<f64>,
 }
 
 /// Field names that may appear in [`ModelPrice::estimated`].
@@ -62,6 +77,7 @@ pub const ESTIMABLE_FIELDS: &[&str] = &[
     "cache_write_1h",
     "cache_write_12h",
     "long_context",
+    "service_tiers",
 ];
 
 impl ModelPrice {
@@ -96,6 +112,9 @@ pub fn parse(json: &str) -> Result<PriceFile> {
         let mut rates = vec![m.input, m.output, m.cache_read, m.cache_write];
         rates.extend(m.cache_write_1h);
         rates.extend(m.cache_write_12h);
+        rates.extend(m.service_tiers.batch);
+        rates.extend(m.service_tiers.flex);
+        rates.extend(m.service_tiers.fast);
         for t in &m.long_context {
             if t.above_prompt_tokens == 0 {
                 return Err(Error::InvalidInput(format!(
@@ -152,8 +171,9 @@ pub fn sync(conn: &mut Connection, file: &PriceFile) -> Result<bool> {
     for m in &file.models {
         tx.execute(
             "INSERT INTO prices (model, effective_from, input_per_mtok, output_per_mtok,
-                 cache_read_per_mtok, cache_write_per_mtok, cache_write_1h_per_mtok, cache_write_12h_per_mtok, source)
-             VALUES (?1, ?2 || 'T00:00:00Z', ?3, ?4, ?5, ?6, ?7, ?8, 'bundled')",
+                 cache_read_per_mtok, cache_write_per_mtok, cache_write_1h_per_mtok, cache_write_12h_per_mtok, batch_multiplier,
+                 flex_multiplier, fast_multiplier, source)
+             VALUES (?1, ?2 || 'T00:00:00Z', ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'bundled')",
             (
                 &m.model,
                 &m.effective_from,
@@ -163,6 +183,9 @@ pub fn sync(conn: &mut Connection, file: &PriceFile) -> Result<bool> {
                 m.cache_write,
                 m.cache_write_1h,
                 m.cache_write_12h,
+                m.service_tiers.batch,
+                m.service_tiers.flex,
+                m.service_tiers.fast,
             ),
         )?;
         for t in &m.long_context {
@@ -404,6 +427,17 @@ mod tests {
         let opus = all.iter().find(|m| m.model == "claude-opus-4-6").unwrap();
         assert_eq!(opus.effective_from, "2026-02-05");
         assert!(opus.is_estimated("effective_from"));
+    }
+
+    #[test]
+    fn service_tier_multipliers_parse_and_validate() {
+        let ok = r#"{"version":"v","models":[{"model":"m","effective_from":"2025-01-01",
+            "input":1,"output":2,"service_tiers":{"batch":0.5,"fast":2}}]}"#;
+        let m = &parse(ok).unwrap().models[0];
+        assert_eq!(m.service_tiers.batch, Some(0.5));
+        assert_eq!(m.service_tiers.flex, None);
+        assert!(parse(&ok.replace("0.5", "-1")).is_err());
+        assert!(parse(&ok.replace("\"fast\"", "\"turbo\"")).is_err());
     }
 
     #[test]

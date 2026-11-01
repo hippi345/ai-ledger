@@ -44,6 +44,27 @@ impl ServiceTier {
     }
 }
 
+/// Multipliers on Standard rates; `None` means the tier isn't offered.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct TierMultipliers {
+    pub batch: Option<f64>,
+    pub flex: Option<f64>,
+    pub fast: Option<f64>,
+}
+
+impl TierMultipliers {
+    /// Multiplier for `tier`; unknown or unoffered tiers bill at Standard.
+    pub fn for_tier(&self, tier: Option<ServiceTier>) -> f64 {
+        match tier {
+            Some(ServiceTier::Batch) => self.batch,
+            Some(ServiceTier::Flex) => self.flex,
+            Some(ServiceTier::Fast) => self.fast,
+            Some(ServiceTier::Standard) | None => None,
+        }
+        .unwrap_or(1.0)
+    }
+}
+
 /// Rates in USD per million tokens, plus the version they came from.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rate {
@@ -56,6 +77,8 @@ pub struct Rate {
     pub cache_write_1h: Option<f64>,
     /// 12-hour cache-write rate; `None` bills those writes at `cache_write`.
     pub cache_write_12h: Option<f64>,
+    /// Service-tier multipliers (Batch, Flex, Fast).
+    pub service_tiers: TierMultipliers,
     /// `"user"` or the bundled table version.
     pub price_version: String,
     /// Long-context tiers, ascending by threshold.
@@ -174,6 +197,12 @@ pub fn resolve_model(conn: &Connection, name: &str) -> Result<Option<String>> {
     Ok(found)
 }
 
+/// USD cost of `t` at `r` for a request on `tier`. The multiplier applies to
+/// the whole request, after any long-context tier is chosen.
+pub fn cost_on_tier(r: &Rate, t: Tokens, tier: Option<ServiceTier>) -> f64 {
+    cost(r, t) * r.service_tiers.for_tier(tier)
+}
+
 /// Rate for `model` effective at `ts_utc`.
 pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Rate>> {
     let Some(canon) = resolve_model(conn, model)? else {
@@ -183,7 +212,8 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
     let row = conn
         .query_row(
             "SELECT input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok, source,
-                    effective_from, cache_write_1h_per_mtok, cache_write_12h_per_mtok
+                    effective_from, cache_write_1h_per_mtok, cache_write_12h_per_mtok,
+                    batch_multiplier, flex_multiplier, fast_multiplier
              FROM prices WHERE model = ?1 AND effective_from <= ?2
              ORDER BY effective_from DESC, source = 'user' DESC LIMIT 1",
             (&canon, ts_utc),
@@ -197,6 +227,11 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
                     r.get::<_, String>(5)?,
                     r.get::<_, Option<f64>>(6)?,
                     r.get::<_, Option<f64>>(7)?,
+                    TierMultipliers {
+                        batch: r.get(8)?,
+                        flex: r.get(9)?,
+                        fast: r.get(10)?,
+                    },
                 ))
             },
         )
@@ -210,6 +245,7 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
         from,
         cache_write_1h,
         cache_write_12h,
+        service_tiers,
     )) = row
     else {
         return Ok(None);
@@ -219,6 +255,7 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
         tiers,
         cache_write_1h,
         cache_write_12h,
+        service_tiers,
         model: canon,
         input,
         output,
@@ -234,9 +271,9 @@ pub fn rate_at(conn: &Connection, model: &str, ts_utc: &str) -> Result<Option<Ra
 
 /// Computes and stores `cost_usd_est` / `price_version` for one event.
 pub fn price_event(conn: &Connection, event_id: i64) -> Result<()> {
-    let (model, ts, t): (Option<String>, String, Tokens) = conn.query_row(
+    let (model, ts, t, tier): (Option<String>, String, Tokens, Option<String>) = conn.query_row(
         "SELECT model, ts_utc, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
-                cache_write_1h_tokens, cache_write_12h_tokens
+                cache_write_1h_tokens, cache_write_12h_tokens, service_tier
          FROM events WHERE id = ?1",
         [event_id],
         |r| {
@@ -252,6 +289,7 @@ pub fn price_event(conn: &Connection, event_id: i64) -> Result<()> {
                     cache_write_1h: n(6)?,
                     cache_write_12h: n(7)?,
                 },
+                r.get(8)?,
             ))
         },
     )?;
@@ -263,7 +301,8 @@ pub fn price_event(conn: &Connection, event_id: i64) -> Result<()> {
         "UPDATE events SET cost_usd_est = ?2, price_version = ?3 WHERE id = ?1",
         (
             event_id,
-            rate.as_ref().map(|r| cost(r, t)),
+            rate.as_ref()
+                .map(|r| cost_on_tier(r, t, tier.as_deref().and_then(ServiceTier::parse))),
             rate.map(|r| r.price_version),
         ),
     )?;
@@ -510,6 +549,7 @@ mod tests {
             cache_write: 2.5,
             cache_write_1h: None,
             cache_write_12h: Some(5.0),
+            service_tiers: TierMultipliers::default(),
             price_version: "v".into(),
             tiers: vec![TierRate {
                 above_prompt_tokens: 272_000,
@@ -551,6 +591,48 @@ mod tests {
     }
 
     #[test]
+    fn service_tier_multiplies_the_whole_request() {
+        let rate = Rate {
+            model: "m".into(),
+            input: 2.0,
+            output: 10.0,
+            cache_read: 0.2,
+            cache_write: 0.0,
+            cache_write_1h: None,
+            cache_write_12h: None,
+            service_tiers: TierMultipliers {
+                batch: Some(0.5),
+                flex: None,
+                fast: Some(2.0),
+            },
+            price_version: "v".into(),
+            tiers: vec![TierRate {
+                above_prompt_tokens: 272_000,
+                input: 4.0,
+                output: 15.0,
+                cache_read: 0.4,
+                cache_write: 0.0,
+                cache_write_12h: None,
+            }],
+        };
+        let long = Tokens {
+            input: 300_000,
+            output: 1_000_000,
+            ..Tokens::default()
+        };
+        let std = cost(&rate, long);
+        assert!((std - (1.2 + 15.0)).abs() < 1e-9);
+        let on = |t| cost_on_tier(&rate, long, t);
+        assert!((on(Some(ServiceTier::Fast)) - 2.0 * std).abs() < 1e-9);
+        assert!((on(Some(ServiceTier::Batch)) - 0.5 * std).abs() < 1e-9);
+        assert!(
+            (on(Some(ServiceTier::Flex)) - std).abs() < 1e-9,
+            "not offered"
+        );
+        assert!((on(None) - std).abs() < 1e-9);
+    }
+
+    #[test]
     fn cost_math() {
         let rate = Rate {
             model: "m".into(),
@@ -562,6 +644,7 @@ mod tests {
             tiers: vec![],
             cache_write_1h: None,
             cache_write_12h: None,
+            service_tiers: TierMultipliers::default(),
         };
         let t = Tokens {
             input: 1_000_000,
