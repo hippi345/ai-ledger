@@ -13,6 +13,7 @@ import {
 import { PricesSettings } from "./settings/PricesSettings";
 import { PrivacyPanel } from "./settings/PrivacyPanel";
 import { RetentionPanel } from "./settings/RetentionPanel";
+import { StartupPanel } from "./settings/StartupPanel";
 import { SourcesSettings } from "./settings/SourcesSettings";
 import { CostsPage } from "./costs/CostsPage";
 import { Overview } from "./overview/Overview";
@@ -230,6 +231,7 @@ const routes = PAGES.map((p) =>
             <PricesSettings />
             <RetentionPanel />
             <PrivacyPanel />
+            <StartupPanel />
           </Page>
         );
       // Every page has a body above; TypeScript checks none is missed.
