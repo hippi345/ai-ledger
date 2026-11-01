@@ -52,6 +52,8 @@ export const commands = {
 	listSessions: (since: string, until: string, filters: AggFilters_Deserialize) => typedError<SessionRow_Serialize[], IpcError>(__TAURI_INVOKE("list_sessions", { since, until, filters })),
 	/**  One session's requests and tool calls in time order. */
 	sessionTimeline: (id: string) => typedError<TimelineItem_Serialize[], IpcError>(__TAURI_INVOKE("session_timeline", { id })),
+	/**  Irreversibly replaces stored project names with hashes. Returns how many names changed. */
+	hashExistingProjects: () => typedError<number, IpcError>(__TAURI_INVOKE("hash_existing_projects")),
 };
 
 /* Types */

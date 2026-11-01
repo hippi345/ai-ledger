@@ -91,6 +91,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::commands::heatmap::activity_heatmap,
             crate::commands::sessions::list_sessions,
             crate::commands::sessions::session_timeline,
+            crate::commands::privacy::hash_existing_projects,
         ])
 }
 
