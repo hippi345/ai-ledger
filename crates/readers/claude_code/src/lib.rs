@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
+use ledger_core::cost::ServiceTier;
 use ledger_core::ingest::{raw_hash, NewEvent, NewToolCall};
 use ledger_core::reader::{Cursor, RawEvent, Reader, SourceCandidate, SourceCfg, Tier};
 use ledger_core::{Error, Result};
@@ -59,6 +60,8 @@ struct Usage {
     cache_creation_input_tokens: u64,
     /// Newer transcripts split cache writes by lifetime.
     cache_creation: Option<CacheCreation>,
+    /// Anthropic's `usage.service_tier`, when the transcript records it.
+    service_tier: Option<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -69,6 +72,17 @@ struct CacheCreation {
 }
 
 impl Usage {
+    /// Only "standard" and "batch" are recorded. Anthropic's "priority" is a
+    /// capacity commitment, not a per-token multiplier, so it stays unset
+    /// (billed as Standard) rather than being mapped to Fast.
+    fn tier(&self) -> Option<ServiceTier> {
+        match self.service_tier.as_deref()? {
+            "standard" => Some(ServiceTier::Standard),
+            "batch" => Some(ServiceTier::Batch),
+            _ => None,
+        }
+    }
+
     /// `(5-minute, 1-hour)` cache writes. Without the split, all writes
     /// count as standard 5-minute writes.
     fn cache_writes(&self) -> (u64, u64) {
@@ -170,6 +184,7 @@ fn line_event(raw: &str, file_session: &str) -> Option<NewEvent> {
         cache_write_tokens: cache_5m,
         cache_write_1h_tokens: cache_1h,
         requests: 1,
+        service_tier: usage.tier(),
         tool_calls,
         ..Default::default()
     })
@@ -414,6 +429,22 @@ mod tests {
         let old = line.replace(r#","cache_creation":{"ephemeral_5m_input_tokens":100,"ephemeral_1h_input_tokens":200}"#, "");
         let e = line_event(&old, "s").unwrap();
         assert_eq!((e.cache_write_tokens, e.cache_write_1h_tokens), (300, 0));
+    }
+
+    #[test]
+    fn service_tier_only_when_recorded() {
+        let line = r#"{"type":"assistant","uuid":"a","sessionId":"s","timestamp":"2026-10-31T12:00:00Z","message":{"id":"m","model":"claude-sonnet-4-5","usage":{"input_tokens":1,"output_tokens":1,"service_tier":"standard"}}}"#;
+        let tier = |l: &str| line_event(l, "s").unwrap().service_tier;
+        assert_eq!(tier(line), Some(ServiceTier::Standard));
+        assert_eq!(
+            tier(&line.replace("standard", "batch")),
+            Some(ServiceTier::Batch)
+        );
+        assert_eq!(tier(&line.replace("standard", "priority")), None);
+        assert_eq!(
+            tier(&line.replace(r#","service_tier":"standard""#, "")),
+            None
+        );
     }
 
     #[test]
