@@ -12,7 +12,7 @@ import {
 } from "@tanstack/react-router";
 import { PricesSettings } from "./settings/PricesSettings";
 import { SourcesSettings } from "./settings/SourcesSettings";
-import { Summary } from "./summary/Summary";
+import { Overview } from "./overview/Overview";
 import { DateRangePicker } from "./filters/DateRangePicker";
 import { FilterBar } from "./filters/FilterBar";
 import { parseFilterSearch, type FilterSearch } from "./filters/filters";
@@ -178,7 +178,7 @@ const routes = PAGES.map((p) =>
       if (p.path === "/")
         return (
           <Page title={p.label}>
-            <Summary />
+            <Overview />
           </Page>
         );
       if (p.path === "/settings")
