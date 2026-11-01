@@ -33,6 +33,8 @@ export const commands = {
 	removePriceOverride: (model: string, effectiveFrom: string) => typedError<number, IpcError>(__TAURI_INVOKE("remove_price_override", { model, effectiveFrom })),
 	/**  Lists models seen in events that have no price, most-used first. */
 	listUnknownModels: () => typedError<UnknownModelInfo[], IpcError>(__TAURI_INVOKE("list_unknown_models")),
+	/**  Turns launch at login on or off and saves the choice. */
+	setLaunchAtLogin: (on: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
 };
 
 /* Types */
