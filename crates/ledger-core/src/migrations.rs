@@ -63,6 +63,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "rollups",
         sql: include_str!("../migrations/0009_rollups.sql"),
     },
+    Migration {
+        version: 10,
+        name: "tool_rollups",
+        sql: include_str!("../migrations/0010_tool_rollups.sql"),
+    },
 ];
 
 /// Highest version known to this build (0 when there are none).

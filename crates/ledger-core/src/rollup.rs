@@ -26,6 +26,15 @@ impl Grain {
         }
     }
 
+    /// The tool/MCP call rollup table for this grain.
+    pub fn tools_table(self) -> &'static str {
+        match self {
+            Grain::Day => "rollups_tools_day",
+            Grain::Week => "rollups_tools_week",
+            Grain::Month => "rollups_tools_month",
+        }
+    }
+
     /// SQL expression giving the bucket start date of timestamp `col`.
     fn bucket_sql(self, col: &str) -> String {
         match self {
@@ -70,6 +79,23 @@ pub fn refresh(conn: &mut Connection, since_utc: &str, until_utc: &str) -> Resul
             ),
             [since_utc, until_utc, &frozen],
         )?;
+        let tt = g.tools_table();
+        let tb = g.bucket_sql("tc.ts_utc");
+        tx.execute(
+            &format!("DELETE FROM {tt} WHERE bucket BETWEEN {lo} AND {hi} AND bucket >= ?3"),
+            [since_utc, until_utc, &frozen],
+        )?;
+        tx.execute(
+            &format!(
+                "INSERT INTO {tt} (bucket, app, tool, mcp_server, calls, failures, duration_ms)
+                 SELECT {tb}, e.app, tc.tool, COALESCE(tc.mcp_server, ''), COUNT(*),
+                    SUM(1 - tc.ok), COALESCE(SUM(tc.duration_ms), 0)
+                 FROM tool_calls tc JOIN events e ON e.id = tc.event_id
+                 WHERE {tb} BETWEEN {lo} AND {hi} AND {tb} >= ?3
+                 GROUP BY 1, 2, 3, 4"
+            ),
+            [since_utc, until_utc, &frozen],
+        )?;
     }
     tx.commit()?;
     Ok(())
@@ -86,10 +112,9 @@ pub fn rebuild_all(conn: &mut Connection) -> Result<()> {
     {
         let tx = conn.transaction()?;
         for g in Grain::ALL {
-            tx.execute(
-                &format!("DELETE FROM {} WHERE bucket >= ?1", g.table()),
-                [&frozen],
-            )?;
+            for t in [g.table(), g.tools_table()] {
+                tx.execute(&format!("DELETE FROM {t} WHERE bucket >= ?1"), [&frozen])?;
+            }
         }
         tx.commit()?;
     }
@@ -99,15 +124,16 @@ pub fn rebuild_all(conn: &mut Connection) -> Result<()> {
     }
 }
 
-/// Builds rollups once for a ledger that has events but no rollups yet
-/// (databases created before rollups existed).
+/// Builds rollups once for a ledger that has events (or tool calls) but no
+/// rollups for them yet (databases created before those rollups existed).
 pub fn ensure_built(conn: &mut Connection) -> Result<()> {
-    let (events, rolled): (bool, bool) = conn.query_row(
-        "SELECT EXISTS (SELECT 1 FROM events), EXISTS (SELECT 1 FROM rollups_day)",
+    let needed: bool = conn.query_row(
+        "SELECT (EXISTS (SELECT 1 FROM events) AND NOT EXISTS (SELECT 1 FROM rollups_day))
+             OR (EXISTS (SELECT 1 FROM tool_calls) AND NOT EXISTS (SELECT 1 FROM rollups_tools_day))",
         [],
-        |r| Ok((r.get(0)?, r.get(1)?)),
+        |r| r.get(0),
     )?;
-    if events && !rolled {
+    if needed {
         tracing::info!("building rollups for existing events");
         rebuild_all(conn)?;
     }
@@ -116,8 +142,13 @@ pub fn ensure_built(conn: &mut Connection) -> Result<()> {
 
 /// Refreshes the buckets covering `events` (no-op when empty).
 pub fn refresh_for(conn: &mut Connection, events: &[crate::ingest::NewEvent]) -> Result<()> {
-    let lo = events.iter().map(|e| e.ts_utc.as_str()).min();
-    let hi = events.iter().map(|e| e.ts_utc.as_str()).max();
+    let all = || {
+        events.iter().flat_map(|e| {
+            std::iter::once(e.ts_utc.as_str()).chain(e.tool_calls.iter().map(|t| t.ts_utc.as_str()))
+        })
+    };
+    let lo = all().min();
+    let hi = all().max();
     match (lo, hi) {
         (Some(lo), Some(hi)) => refresh(conn, lo, hi),
         _ => Ok(()),
@@ -257,6 +288,60 @@ mod tests {
             1 + 2 + 4,
             "pruned day kept, new day added"
         );
+    }
+
+    #[test]
+    fn tool_calls_roll_up_by_tool_and_server() {
+        use crate::ingest::NewToolCall;
+        let call = |ts: &str, tool: &str, mcp: Option<&str>, ok: bool| NewToolCall {
+            ts_utc: ts.into(),
+            tool: tool.into(),
+            mcp_server: mcp.map(Into::into),
+            duration_ms: Some(10),
+            ok,
+        };
+        let mut e = ev("2026-10-01T10:00:00Z", "a", 1, "1");
+        e.tool_calls = vec![
+            call("2026-10-01T10:00:01Z", "read_file", None, true),
+            call("2026-10-01T10:00:02Z", "read_file", None, false),
+            call("2026-10-02T00:00:01Z", "search", Some("github"), true),
+        ];
+        let mut c = setup(&[]);
+        let s = sources::list(&c).unwrap()[0].id;
+        let evs = [e];
+        upsert_events(&mut c, s, &evs).unwrap();
+        refresh_for(&mut c, &evs).unwrap();
+        let mut st = c
+            .prepare("SELECT bucket, tool, mcp_server, calls, failures, duration_ms FROM rollups_tools_day ORDER BY 1, 2")
+            .unwrap();
+        let got: Vec<(String, String, String, i64, i64, i64)> = st
+            .query_map([], |r| {
+                Ok((
+                    r.get(0)?,
+                    r.get(1)?,
+                    r.get(2)?,
+                    r.get(3)?,
+                    r.get(4)?,
+                    r.get(5)?,
+                ))
+            })
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        let s = |v: &str| v.to_owned();
+        assert_eq!(
+            got,
+            vec![
+                (s("2026-10-01"), s("read_file"), s(""), 2, 1, 20),
+                (s("2026-10-02"), s("search"), s("github"), 1, 0, 10)
+            ]
+        );
+        let month: i64 = c
+            .query_row("SELECT SUM(calls) FROM rollups_tools_month", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(month, 3);
     }
 
     #[test]
