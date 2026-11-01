@@ -88,6 +88,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::commands::summary::summary_cards,
             crate::commands::tools::aggregate_tools,
             crate::commands::heatmap::activity_heatmap,
+            crate::commands::sessions::list_sessions,
+            crate::commands::sessions::session_timeline,
         ])
 }
 
