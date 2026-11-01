@@ -49,15 +49,28 @@ pub fn get_setting(state: State<'_, AppState>, key: String) -> IpcResult<Option<
 /// Stores a setting.
 #[tauri::command]
 #[specta::specta]
-pub fn set_setting(state: State<'_, AppState>, key: String, value: Value) -> IpcResult<()> {
-    core::set(&state, &key, &value)
+pub fn set_setting(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    key: String,
+    value: Value,
+) -> IpcResult<()> {
+    core::set(&state, &key, &value)?;
+    crate::tray::sync_pause(&app, &key);
+    Ok(())
 }
 
 /// Removes a setting so its default applies. Returns whether it was set.
 #[tauri::command]
 #[specta::specta]
-pub fn reset_setting(state: State<'_, AppState>, key: String) -> IpcResult<bool> {
-    core::reset(&state, &key)
+pub fn reset_setting(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    key: String,
+) -> IpcResult<bool> {
+    let was_set = core::reset(&state, &key)?;
+    crate::tray::sync_pause(&app, &key);
+    Ok(was_set)
 }
 
 /// Lists all stored settings, sorted by key.
