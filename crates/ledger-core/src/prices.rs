@@ -224,6 +224,61 @@ pub fn sync_bundled(conn: &mut Connection) -> Result<bool> {
     sync(conn, &bundled()?)
 }
 
+/// One row of the effective price table, USD per million tokens.
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub struct PriceRow {
+    pub model: String,
+    /// `YYYY-MM-DD` (UTC).
+    pub effective_from: String,
+    pub input: f64,
+    pub output: f64,
+    pub cache_read: f64,
+    pub cache_write: f64,
+    pub cache_write_1h: Option<f64>,
+    pub cache_write_12h: Option<f64>,
+    /// `"bundled"` or `"user"` (an override).
+    pub source: String,
+    /// Bundled fields marked as estimates in the shipped table.
+    pub estimated: Vec<String>,
+}
+
+/// All loaded prices (bundled and user overrides), by model then date.
+/// `estimated` comes from the bundled file for bundled rows.
+pub fn table(conn: &Connection) -> Result<Vec<PriceRow>> {
+    let shipped = bundled()?;
+    let mut st = conn.prepare(
+        "SELECT model, substr(effective_from, 1, 10), input_per_mtok, output_per_mtok,
+                cache_read_per_mtok, cache_write_per_mtok, cache_write_1h_per_mtok,
+                cache_write_12h_per_mtok, source
+         FROM prices ORDER BY model, effective_from, source",
+    )?;
+    let rows = st.query_map([], |r| {
+        Ok(PriceRow {
+            model: r.get(0)?,
+            effective_from: r.get(1)?,
+            input: r.get(2)?,
+            output: r.get(3)?,
+            cache_read: r.get(4)?,
+            cache_write: r.get(5)?,
+            cache_write_1h: r.get(6)?,
+            cache_write_12h: r.get(7)?,
+            source: r.get(8)?,
+            estimated: vec![],
+        })
+    })?;
+    let mut out = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+    for row in out.iter_mut().filter(|r| r.source == "bundled") {
+        if let Some(m) = shipped
+            .models
+            .iter()
+            .find(|m| m.model == row.model && m.effective_from == row.effective_from)
+        {
+            row.estimated.clone_from(&m.estimated);
+        }
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -449,5 +504,41 @@ mod tests {
             {"model":"m","effective_from":"2026-01-01","input":1,"output":1},
             {"model":"x","aliases":["M"],"effective_from":"2026-01-01","input":1,"output":1}]}"#;
         assert!(parse(dup).is_err());
+    }
+
+    #[test]
+    fn table_lists_bundled_and_user_rows_with_estimates() {
+        let mut c = db::open_in_memory().unwrap();
+        sync_bundled(&mut c).unwrap();
+        c.execute(
+            "INSERT INTO prices (model, effective_from, input_per_mtok, output_per_mtok, source)
+             VALUES ('my-model', '2026-01-01T00:00:00Z', 1, 2, 'user')",
+            [],
+        )
+        .unwrap();
+        let t = table(&c).unwrap();
+        let shipped = bundled().unwrap();
+        assert_eq!(t.len(), shipped.models.len() + 1);
+        let user = t.iter().find(|r| r.model == "my-model").unwrap();
+        assert_eq!(
+            (
+                user.effective_from.as_str(),
+                user.source.as_str(),
+                user.output
+            ),
+            ("2026-01-01", "user", 2.0)
+        );
+        for m in &shipped.models {
+            let r = t
+                .iter()
+                .find(|r| {
+                    r.source == "bundled"
+                        && r.model == m.model
+                        && r.effective_from == m.effective_from
+                })
+                .unwrap();
+            assert_eq!(r.estimated, m.estimated);
+            assert_eq!(r.input, m.input);
+        }
     }
 }
