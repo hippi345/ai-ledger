@@ -131,6 +131,31 @@ pub fn aggregate(conn: &Connection, q: &Query) -> Result<Vec<Row>> {
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
+/// Key used for the group that collects everything outside the top N.
+pub const OTHER: &str = "Other";
+
+/// The `n` largest rows by value (ties broken by keys), plus one `"Other"`
+/// row summing the rest when there is a rest. `n == 0` returns everything
+/// sorted.
+pub fn top_n(mut rows: Vec<Row>, n: usize) -> Vec<Row> {
+    rows.sort_by(|a, b| {
+        b.value
+            .total_cmp(&a.value)
+            .then_with(|| a.keys.cmp(&b.keys))
+    });
+    if n == 0 || rows.len() <= n {
+        return rows;
+    }
+    let rest: f64 = rows[n..].iter().map(|r| r.value).sum();
+    let width = rows[0].keys.len().max(1);
+    rows.truncate(n);
+    rows.push(Row {
+        keys: vec![OTHER.to_owned(); width],
+        value: rest,
+    });
+    rows
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -220,5 +245,26 @@ mod tests {
         .unwrap();
         assert_eq!(query.grain, Grain::Week);
         assert_eq!(query.group_by, vec![Dim::Model]);
+    }
+
+    #[test]
+    fn top_n_groups_the_rest_as_other() {
+        let rows = vec![
+            row(&["a"], 1.0),
+            row(&["b"], 5.0),
+            row(&["c"], 3.0),
+            row(&["d"], 3.0),
+        ];
+        assert_eq!(
+            top_n(rows.clone(), 2),
+            vec![row(&["b"], 5.0), row(&["c"], 3.0), row(&["Other"], 4.0)]
+        );
+        assert_eq!(
+            top_n(rows.clone(), 4).len(),
+            4,
+            "no Other when nothing is left"
+        );
+        assert_eq!(top_n(rows, 0)[0], row(&["b"], 5.0));
+        assert!(top_n(vec![], 3).is_empty());
     }
 }
