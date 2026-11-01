@@ -10,6 +10,7 @@ import { toolCallsOption } from "../charts/toolCalls";
 import type { Cell } from "../export/csv";
 import {
   parseFilterSearch,
+  toAggFilters,
   type FilterDim,
   type FilterSearch,
 } from "../filters/filters";
@@ -92,7 +93,11 @@ export async function loadWidget(
     }
     case "activity-heatmap": {
       const cells = ok(
-        await commands.activityHeatmap(range.since, range.until),
+        await commands.activityHeatmap(
+          range.since,
+          range.until,
+          toAggFilters(f),
+        ),
       );
       return {
         option: heatmapOption(cells, "tokens"),

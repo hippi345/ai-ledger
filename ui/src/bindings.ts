@@ -44,8 +44,8 @@ export const commands = {
 	summaryCards: () => typedError<SummaryCard[], IpcError>(__TAURI_INVOKE("summary_cards")),
 	/**  Sums tool/MCP calls, failures or duration, grouped and filtered. */
 	aggregateTools: (query: ToolAggQuery_Deserialize) => typedError<AggRow[], IpcError>(__TAURI_INVOKE("aggregate_tools", { query })),
-	/**  Activity by weekday and hour for a date range. */
-	activityHeatmap: (since: string, until: string) => typedError<HeatCell[], IpcError>(__TAURI_INVOKE("activity_heatmap", { since, until })),
+	/**  Activity by weekday and hour for a date range, filtered like aggregate. */
+	activityHeatmap: (since: string, until: string, filters: AggFilters_Deserialize) => typedError<HeatCell[], IpcError>(__TAURI_INVOKE("activity_heatmap", { since, until, filters })),
 };
 
 /* Types */
