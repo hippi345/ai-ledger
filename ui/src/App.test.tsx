@@ -6,6 +6,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }));
+// ECharts needs a real canvas; chart rendering is covered in charts/.
+vi.mock("./charts/Chart", () => ({ Chart: () => null }));
 
 import { App } from "./App";
 
@@ -56,4 +58,17 @@ test("filter chips come from the URL and can be removed", async () => {
     expect(screen.queryByRole("toolbar", { name: "Filters" })).toBeNull(),
   );
   expect(history.location.search).not.toContain("gpt-5");
+});
+
+test("the Models page shows the model usage table", async () => {
+  const { invoke } = await import("@tauri-apps/api/core");
+  vi.mocked(invoke).mockImplementation(async (cmd: string) =>
+    cmd === "aggregate"
+      ? { rows: [{ keys: ["gpt-5"], value: 5 }], total: 5 }
+      : [],
+  );
+  render(<App history={at("/models")} />);
+  expect(
+    await screen.findByRole("table", { name: "Model usage" }),
+  ).toHaveTextContent("gpt-5");
 });
