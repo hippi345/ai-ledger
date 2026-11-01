@@ -37,8 +37,14 @@ type Props = { onOpen?: (id: string) => void };
 export function SessionsPage({ onOpen }: Props) {
   const { sessions, error } = useSessions();
   if (error) return <p role="alert">{error}</p>;
-  if (!sessions) return <p>Loading…</p>;
-  if (sessions.length === 0) return <p>No sessions in this range.</p>;
+  if (!sessions)
+    return (
+      <p className="skeleton" aria-busy="true">
+        <span className="sr-only">Loading…</span>
+      </p>
+    );
+  if (sessions.length === 0)
+    return <p className="empty">No sessions in this range.</p>;
   return (
     <>
       {sessions.length >= SESSION_LIMIT && (

@@ -14,7 +14,12 @@ export function DimensionPage({ dim }: { dim: PageDim }) {
   const cross = useCrossFilter(dim);
   const label = FILTER_LABELS[dim];
   if (error) return <p role="alert">{error}</p>;
-  if (!data) return <p>Loading…</p>;
+  if (!data)
+    return (
+      <p className="skeleton" aria-busy="true">
+        <span className="sr-only">Loading…</span>
+      </p>
+    );
   const columns: Column[] = [
     { key: dim, label },
     {
