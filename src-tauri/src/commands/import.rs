@@ -93,8 +93,8 @@ pub struct ImportPreview {
     pub skipped: u32,
     pub first_ts: Option<String>,
     pub last_ts: Option<String>,
-    pub input_tokens: f64,
-    pub output_tokens: f64,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
 }
 
 fn n(v: usize) -> u32 {
@@ -174,8 +174,8 @@ pub mod core {
             skipped: n(skipped),
             first_ts,
             last_ts,
-            input_tokens: input_tokens as f64,
-            output_tokens: output_tokens as f64,
+            input_tokens,
+            output_tokens,
         })
     }
 
