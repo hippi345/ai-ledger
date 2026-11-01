@@ -46,6 +46,10 @@ export const commands = {
 	aggregateTools: (query: ToolAggQuery_Deserialize) => typedError<AggRow[], IpcError>(__TAURI_INVOKE("aggregate_tools", { query })),
 	/**  Activity by weekday and hour for a date range, filtered like aggregate. */
 	activityHeatmap: (since: string, until: string, filters: AggFilters_Deserialize) => typedError<HeatCell[], IpcError>(__TAURI_INVOKE("activity_heatmap", { since, until, filters })),
+	/**  Sessions with usage in a date range, newest first (at most 500). */
+	listSessions: (since: string, until: string, filters: AggFilters_Deserialize) => typedError<SessionRow[], IpcError>(__TAURI_INVOKE("list_sessions", { since, until, filters })),
+	/**  One session's requests and tool calls in time order. */
+	sessionTimeline: (id: string) => typedError<TimelineItem[], IpcError>(__TAURI_INVOKE("session_timeline", { id })),
 };
 
 /* Types */
@@ -172,6 +176,22 @@ export type PriceOverride = {
 	cacheWrite: number | null,
 };
 
+/**  One session's usage within the queried range. */
+export type SessionRow = {
+	id: string,
+	app: string,
+	project: string | null,
+	/**  First and last event in the range (RFC 3339 UTC). */
+	firstTs: string,
+	lastTs: string,
+	events: number,
+	tokens: number | null,
+	/**  None when none of its events has a price. */
+	costUsd: number | null,
+	/**  Models used, comma-separated. */
+	models: string,
+};
+
 /**  One stored setting. */
 export type SettingEntry = {
 	key: string,
@@ -258,6 +278,18 @@ export type ToolAggQuery_Serialize = {
 };
 
 /**  A model seen in events that has no price. */
+/**  A request (`tool` null) or a tool call in a session's timeline. */
+export type TimelineItem = {
+	tsUtc: string,
+	model: string | null,
+	tokens: number | null,
+	costUsd: number | null,
+	tool: string | null,
+	mcpServer: string | null,
+	durationMs: number | null,
+	ok: boolean,
+};
+
 export type UnknownModelInfo = {
 	model: string,
 	events: number,
