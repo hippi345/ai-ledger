@@ -31,3 +31,20 @@ fn committed_bindings_are_up_to_date() {
 fn regenerate_bindings() {
     export_bindings(std::path::Path::new(BINDINGS_PATH)).unwrap();
 }
+
+#[test]
+fn ingested_event_reports_changes_only() {
+    let s = ledger_core::ingest::IngestStats {
+        inserted: 2,
+        updated: 0,
+        unchanged: 5,
+    };
+    let ev = IngestedEvent::new(3, s);
+    assert_eq!(INGESTED_EVENT, "ledger://ingested");
+    assert!(ev.changed());
+    assert_eq!(
+        serde_json::to_value(&ev).unwrap(),
+        serde_json::json!({"sourceId": 3, "inserted": 2, "updated": 0})
+    );
+    assert!(!IngestedEvent::new(3, Default::default()).changed());
+}
