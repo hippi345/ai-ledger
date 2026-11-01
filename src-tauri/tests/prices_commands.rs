@@ -37,3 +37,27 @@ fn bad_input_has_stable_code() {
     let e = core::remove(&state(), "nope", "2026-01-01").unwrap_err();
     assert_eq!(e.code, "invalid_input");
 }
+
+#[test]
+fn unknown_models_list() {
+    let s = state();
+    assert!(core::unknown(&s).unwrap().is_empty());
+    s.db()
+        .execute("INSERT INTO sources (reader_id, tier) VALUES ('t', 1)", [])
+        .unwrap();
+    let e = ledger_core::ingest::NewEvent {
+        ts_utc: "2026-10-31T00:00:00Z".into(),
+        app: "cursor".into(),
+        model: Some("mystery".into()),
+        input_tokens: 7,
+        requests: 1,
+        raw_hash: "h".into(),
+        ..Default::default()
+    };
+    ledger_core::ingest::upsert_events(&mut s.db(), 1, &[e]).unwrap();
+    let u = core::unknown(&s).unwrap();
+    assert_eq!(
+        (u[0].model.as_str(), u[0].events, u[0].tokens),
+        ("mystery", 1, 7)
+    );
+}
