@@ -128,6 +128,21 @@ fn toggle_pause(app: &tauri::AppHandle) {
     }
 }
 
+/// After a settings write from the UI, keeps the tray's pause check mark in
+/// step with `live.paused` (no-op for other keys or without a tray).
+pub fn sync_pause(app: &tauri::AppHandle, key: &str) {
+    use tauri::Manager;
+    if key != ledger_core::settings::keys::LIVE_PAUSED {
+        return;
+    }
+    if let (Some(state), Some(p)) = (
+        app.try_state::<crate::state::AppState>(),
+        app.try_state::<TrayPause>(),
+    ) {
+        let _ = p.0.set_checked(crate::live::paused(&state));
+    }
+}
+
 /// Re-reads today's totals into the tray menu (no-op without a tray).
 pub fn refresh(app: &tauri::AppHandle) {
     use tauri::Manager;
