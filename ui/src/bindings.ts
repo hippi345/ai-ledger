@@ -33,6 +33,8 @@ export const commands = {
 	removePriceOverride: (model: string, effectiveFrom: string) => typedError<number, IpcError>(__TAURI_INVOKE("remove_price_override", { model, effectiveFrom })),
 	/**  Lists models seen in events that have no price, most-used first. */
 	listUnknownModels: () => typedError<UnknownModelInfo[], IpcError>(__TAURI_INVOKE("list_unknown_models")),
+	/**  The effective price table: bundled prices and user overrides. */
+	listPrices: () => typedError<PriceRow_Serialize[], IpcError>(__TAURI_INVOKE("list_prices")),
 	/**  Turns launch at login on or off and saves the choice. */
 	setLaunchAtLogin: (on: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
 	/**  Sums a metric over rollups, grouped and filtered (spec §8). */
@@ -174,6 +176,43 @@ export type PriceOverride = {
 	output: number | null,
 	cacheRead: number | null,
 	cacheWrite: number | null,
+};
+
+/**  One effective price row, USD per million tokens. */
+export type PriceRow = PriceRow_Serialize | PriceRow_Deserialize;
+
+/**  One effective price row, USD per million tokens. */
+export type PriceRow_Deserialize = {
+	model: string,
+	/**  `YYYY-MM-DD` (UTC). */
+	effectiveFrom: string,
+	input: number | null,
+	output: number | null,
+	cacheRead: number | null,
+	cacheWrite: number | null,
+	cacheWrite1h?: number | null,
+	cacheWrite12h?: number | null,
+	/**  "bundled" or "user". */
+	source: string,
+	/**  Fields that are estimates in the shipped table. */
+	estimated: string[],
+};
+
+/**  One effective price row, USD per million tokens. */
+export type PriceRow_Serialize = {
+	model: string,
+	/**  `YYYY-MM-DD` (UTC). */
+	effectiveFrom: string,
+	input: number | null,
+	output: number | null,
+	cacheRead: number | null,
+	cacheWrite: number | null,
+	cacheWrite1h: number | null,
+	cacheWrite12h: number | null,
+	/**  "bundled" or "user". */
+	source: string,
+	/**  Fields that are estimates in the shipped table. */
+	estimated: string[],
 };
 
 /**  One session's usage within the queried range. */
