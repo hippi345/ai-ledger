@@ -41,4 +41,34 @@ fn cards_describe_each_period() {
         "no usage in the previous 3 days, so no change wording"
     );
     assert_eq!(c[2].label, "This month");
+    // Only gpt-5 existed last week (10-30..11-02 has nothing), so the mover is new.
+    assert_eq!(c[3].label, "Biggest mover");
+    assert_eq!(
+        c[3].text,
+        "Biggest mover this week: claude-sonnet, new to 3M tokens."
+    );
+    assert_eq!(c.len(), 4, "no tool calls, so no tool/MCP cards");
+}
+
+#[test]
+fn tool_and_mcp_cards() {
+    let s = AppState::from_connection(ledger_core::db::open_in_memory().unwrap());
+    for (tool, mcp, calls, fails) in [("read_file", "", 9, 1), ("search", "github", 4, 0)] {
+        s.db()
+            .execute(
+                "INSERT INTO rollups_tools_day VALUES ('2026-11-03', 'cursor', ?1, ?2, ?3, ?4, 0)",
+                rusqlite::params![tool, mcp, calls, fails],
+            )
+            .unwrap();
+    }
+    let c = cards_for(&s, d("2026-11-04")).unwrap();
+    let text = |l: &str| c.iter().find(|x| x.label == l).unwrap().text.clone();
+    assert_eq!(
+        text("Top tool"),
+        "Top tool this week: read_file, 9 calls (1 failed)."
+    );
+    assert_eq!(
+        text("Top MCP"),
+        "Top MCP server this week: github, 4 calls."
+    );
 }

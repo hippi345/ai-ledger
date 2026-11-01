@@ -37,7 +37,10 @@ export const commands = {
 	setLaunchAtLogin: (on: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
 	/**  Sums a metric over rollups, grouped and filtered (spec §8). */
 	aggregate: (query: AggQuery_Deserialize) => typedError<AggResult_Serialize, IpcError>(__TAURI_INVOKE("aggregate", { query })),
-	/**  Today / this week / this month summary sentences. */
+	/**
+	 *  Today / this week / this month summary sentences, plus top tool, top MCP
+	 *  server and biggest mover for this week when there is something to say.
+	 */
 	summaryCards: () => typedError<SummaryCard[], IpcError>(__TAURI_INVOKE("summary_cards")),
 };
 
