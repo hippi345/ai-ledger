@@ -1,0 +1,186 @@
+/* Overview widget chrome and react-grid-layout overrides (redesign §4.6). */
+.widget-grid {
+    margin: 0 -16px;
+}
+
+.widget-grid > article {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    transition: border-color var(--dur) var(--ease);
+}
+
+.widget-grid > article:hover {
+    border-color: var(--border-strong);
+}
+
+.widget-grid > article > header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    height: 44px;
+    padding: 0 8px 0 16px;
+}
+
+.widget-grid .widget-handle {
+    position: relative;
+    font: 500 var(--text-sm) var(--font-sans);
+    color: var(--text);
+    cursor: grab;
+    user-select: none;
+}
+
+.widget-grid .widget-handle::before {
+    content: "";
+    position: absolute;
+    left: -11px;
+    top: 50%;
+    width: 6px;
+    height: 10px;
+    transform: translateY(-50%);
+    opacity: 0;
+    background-image: radial-gradient(
+        var(--text-subtle) 1px,
+        transparent 1.2px
+    );
+    background-size: 3px 3.4px;
+    transition: opacity var(--dur) var(--ease);
+}
+
+.widget-grid > article:hover .widget-handle::before {
+    opacity: 1;
+}
+
+.react-draggable-dragging .widget-handle {
+    cursor: grabbing;
+}
+
+/* Actions: ×, CSV and PNG in the header row, revealed on hover/focus. */
+.widget-grid > article > header > button,
+.widget-grid > article > button,
+.widget-grid > article > div > button {
+    height: 28px;
+    padding: 0 8px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    opacity: 0;
+    transition:
+        opacity var(--dur) var(--ease),
+        background-color var(--dur) var(--ease),
+        color var(--dur) var(--ease);
+}
+
+.widget-grid > article > header > button {
+    width: 28px;
+    padding: 0;
+    font-size: 16px;
+}
+
+.widget-grid > article > button,
+.widget-grid > article > div > button {
+    position: absolute;
+    top: 8px;
+    z-index: 1;
+}
+
+.widget-grid > article > button {
+    right: 80px;
+}
+
+.widget-grid > article > div > button {
+    right: 40px;
+}
+
+.widget-grid > article:hover button,
+.widget-grid > article:focus-within button {
+    opacity: 1;
+}
+
+.widget-grid > article button:hover:not(:disabled) {
+    border-color: transparent;
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+@media (hover: none) {
+    .widget-grid > article button {
+        opacity: 1;
+    }
+}
+
+/* Body: the rest of the card. */
+.widget-grid > article > :not(header):not(button) {
+    padding: 4px 16px 16px;
+    min-height: 0;
+}
+
+.widget-grid > article > section[aria-label="Summary"] {
+    padding: 4px 16px 16px;
+}
+
+.widget-grid > article > section[aria-label="Summary"] > article {
+    background: var(--bg-subtle);
+}
+
+/* Grid chrome */
+.react-grid-item.react-grid-placeholder {
+    background: var(--accent-muted);
+    border: 1px dashed var(--accent);
+    border-radius: var(--radius-md);
+    opacity: 1;
+}
+
+.react-grid-item.react-draggable-dragging {
+    box-shadow: var(--shadow-drag);
+}
+
+.react-grid-item > .react-resizable-handle {
+    opacity: 0;
+    transition: opacity var(--dur) var(--ease);
+}
+
+.react-grid-item:hover > .react-resizable-handle {
+    opacity: 1;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se {
+    width: 14px;
+    height: 14px;
+    right: 4px;
+    bottom: 4px;
+    background: none;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se::after {
+    right: 2px;
+    bottom: 2px;
+    width: 10px;
+    height: 10px;
+    border-right: 1px solid var(--text-subtle);
+    border-bottom: 1px solid var(--text-subtle);
+}
+
+/* Widget toolbar */
+[role="toolbar"][aria-label="Widgets"] {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+[role="toolbar"][aria-label="Widgets"] label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.widget-grid > article > section[aria-label="Summary"] > article {
+    padding: var(--space-3) var(--space-4);
+}
