@@ -8,7 +8,7 @@ use crate::error::IpcResult;
 use crate::state::AppState;
 
 /// One heatmap cell. `weekday` 0 = Monday, `hour` 0..=23 UTC.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Type)]
 pub struct HeatCell {
     pub weekday: u8,
     pub hour: u8,
