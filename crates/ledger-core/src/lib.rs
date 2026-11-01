@@ -16,6 +16,7 @@ pub mod reader;
 pub mod retention;
 pub mod settings;
 pub mod sources;
+pub mod sync;
 pub mod unknown_models;
 
 pub use error::{Error, Result};
