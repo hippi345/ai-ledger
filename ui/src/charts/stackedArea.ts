@@ -1,5 +1,5 @@
 import type { EChartsCoreOption } from "echarts/core";
-import { formatCost, formatTokens, seriesColor } from "./theme";
+import { areaGradient, formatCost, formatTokens, LEGEND_GRID, LEGEND_TOP, seriesColor } from "./theme";
 
 /** An aggregate row grouped by [bucket, dimension]. */
 export type SeriesRow = { keys: string[]; value: number | null };
@@ -19,7 +19,8 @@ export function stackedAreaOption(rows: SeriesRow[], metric: "tokens" | "cost"):
   const at = new Map(rows.map((r) => [`${r.keys[0]}\u0000${r.keys[1]}`, r.value ?? 0]));
   const fmt = metric === "cost" ? formatCost : formatTokens;
   return {
-    legend: { type: "scroll", bottom: 0 },
+    legend: { type: "scroll", ...LEGEND_TOP, show: names.length > 1 },
+    grid: LEGEND_GRID,
     xAxis: { type: "category", boundaryGap: false, data: buckets },
     yAxis: { type: "value", axisLabel: { formatter: (v: number) => fmt(v) } },
     tooltip: { trigger: "axis", valueFormatter: (v: number) => fmt(v) },
@@ -27,8 +28,11 @@ export function stackedAreaOption(rows: SeriesRow[], metric: "tokens" | "cost"):
       name: name === "" ? "Unknown" : name,
       type: "line",
       stack: "total",
-      areaStyle: {},
+      areaStyle: { color: areaGradient(seriesColor(name, i), 0.35, 0.05) },
+      lineStyle: { width: 1.5 },
       showSymbol: false,
+      smooth: false,
+      emphasis: { focus: "series" },
       color: seriesColor(name, i),
       data: buckets.map((b) => at.get(`${b}\u0000${name}`) ?? 0),
     })),

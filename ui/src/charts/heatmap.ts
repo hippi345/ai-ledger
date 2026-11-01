@@ -32,8 +32,14 @@ export function heatmapOption(
       min: 0,
       max,
       show: false,
-      inRange: { color: ["#eef2ff", "#4f46e5"] },
+      inRange: { color: ["#141414", "#1e3a8a", "#3b82f6", "#93c5fd"] },
     },
-    series: [{ type: "heatmap", data }],
+    series: [
+      {
+        type: "heatmap",
+        data,
+        itemStyle: { borderColor: "#0a0a0a", borderWidth: 2, borderRadius: 2 },
+      },
+    ],
   };
 }

@@ -1,4 +1,11 @@
-import { formatCost, formatTokens, seriesColor, PALETTE } from "./theme";
+import {
+  alpha,
+  areaGradient,
+  formatCost,
+  formatTokens,
+  seriesColor,
+  PALETTE,
+} from "./theme";
 
 test("token formatting matches the summary cards", () => {
   expect(formatTokens(950)).toBe("950");
@@ -19,4 +26,13 @@ test("Other is grey and colors cycle", () => {
   expect(seriesColor("Other", 0)).toBe("#404040");
   expect(seriesColor("a", 0)).toBe(PALETTE[0]);
   expect(seriesColor("a", PALETTE.length - 1)).toBe(PALETTE[0]);
+});
+
+test("alpha and area gradients", () => {
+  expect(alpha("#3b82f6", 0.25)).toBe("rgba(59,130,246,0.25)");
+  const g = areaGradient("#3b82f6", 0.35, 0.05);
+  expect(g.colorStops.map((c) => c.color)).toEqual([
+    "rgba(59,130,246,0.35)",
+    "rgba(59,130,246,0.05)",
+  ]);
 });

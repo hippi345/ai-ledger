@@ -101,14 +101,53 @@ export const LEDGER_THEME = {
   visualMap: { textStyle: { color: "#a1a1a1" } },
 };
 
+/** Legend at the top-left (redesign §5). */
+export const LEGEND_TOP = { left: 0, top: 0 };
+
+/** Grid that leaves room for a top legend. */
+export const LEGEND_GRID = {
+  left: 8,
+  right: 8,
+  top: 32,
+  bottom: 8,
+  containLabel: true,
+};
+
+/** Bar sizing shared by bar charts. */
+export const BAR = {
+  barMaxWidth: 24,
+  barCategoryGap: 4,
+  emphasis: { focus: "series" as const },
+};
+
+/** `#rrggbb` as `rgba(r,g,b,a)`. */
+export function alpha(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/** Vertical area fill from `top` to `bottom` opacity of `color`. */
+export function areaGradient(color: string, top: number, bottom: number) {
+  return {
+    type: "linear" as const,
+    x: 0,
+    y: 0,
+    x2: 0,
+    y2: 1,
+    colorStops: [
+      { offset: 0, color: alpha(color, top) },
+      { offset: 1, color: alpha(color, bottom) },
+    ],
+  };
+}
+
 /** Base ECharts options every chart starts from. */
 export const baseOption = {
   color: PALETTE,
   backgroundColor: "transparent",
   animationDuration: 200,
   animationEasing: "cubicOut" as const,
-  // Room at the bottom for legends until PR 8 moves them top-left.
-  grid: { left: 8, right: 8, top: 16, bottom: 32, containLabel: true },
+  grid: { left: 8, right: 8, top: 16, bottom: 8, containLabel: true },
   tooltip: {
     trigger: "axis" as const,
     axisPointer: {

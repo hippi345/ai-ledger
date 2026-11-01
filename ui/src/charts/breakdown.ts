@@ -1,6 +1,6 @@
 import type { EChartsCoreOption } from "echarts/core";
 import type { SeriesRow } from "./stackedArea";
-import { formatCost, formatTokens, seriesColor } from "./theme";
+import { BAR, formatCost, formatTokens, seriesColor } from "./theme";
 
 const label = (k: string) => (k === "" ? "Unknown" : k);
 
@@ -24,6 +24,8 @@ export function barOption(rows: SeriesRow[], metric: "tokens" | "cost"): ECharts
     series: [
       {
         type: "bar",
+        ...BAR,
+        itemStyle: { borderRadius: [0, 3, 3, 0] },
         data: items.map((it, i) => ({
           value: it.value,
           itemStyle: { color: seriesColor(it.name, items.length - 1 - i) },
@@ -38,12 +40,16 @@ export function donutOption(rows: SeriesRow[], metric: "tokens" | "cost"): EChar
   const fmt = metric === "cost" ? formatCost : formatTokens;
   return {
     tooltip: { trigger: "item", valueFormatter: (v: number) => fmt(v) },
-    legend: { type: "scroll", bottom: 0 },
+    legend: { type: "scroll", orient: "vertical", right: 0, top: "middle" },
     series: [
       {
         type: "pie",
-        radius: ["45%", "70%"],
+        radius: ["62%", "80%"],
+        center: ["35%", "50%"],
         avoidLabelOverlap: true,
+        label: { show: false },
+        labelLine: { show: false },
+        itemStyle: { borderColor: "#141414", borderWidth: 2 },
         data: ordered(rows).map((it, i) => ({
           name: label(it.name),
           value: it.value,
