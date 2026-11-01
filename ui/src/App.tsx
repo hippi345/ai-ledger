@@ -1,15 +1,9 @@
-import { PricesSettings } from "./settings/PricesSettings";
-import { SourcesSettings } from "./settings/SourcesSettings";
-import { Summary } from "./summary/Summary";
+import { useState } from "react";
+import { RouterProvider, type RouterHistory } from "@tanstack/react-router";
+import { makeRouter } from "./router";
 
-export function App() {
-  return (
-    <main>
-      <h1>AI Ledger</h1>
-      <p>Local-first AI usage ledger. No data leaves this machine.</p>
-      <Summary />
-      <SourcesSettings />
-      <PricesSettings />
-    </main>
-  );
+/** The app: sidebar shell plus one route per page. */
+export function App({ history }: { history?: RouterHistory }) {
+  const [router] = useState(() => makeRouter(history));
+  return <RouterProvider router={router} />;
 }
