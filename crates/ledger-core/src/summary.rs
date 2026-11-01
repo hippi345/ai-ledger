@@ -107,6 +107,63 @@ pub fn sentence(s: &PeriodSummary<'_>) -> String {
     format!("{}: {}.", s.label, parts.join(", "))
 }
 
+/// "Top tool this week: read_file, 120 calls (3 failed)." `None` without calls.
+pub fn top_tool_sentence(period: &str, tool: &str, calls: f64, failures: f64) -> Option<String> {
+    if calls <= 0.0 || tool.is_empty() {
+        return None;
+    }
+    let failed = if failures > 0.0 {
+        format!(" ({failures:.0} failed)")
+    } else {
+        String::new()
+    };
+    Some(format!(
+        "Top tool {period}: {tool}, {} call{}{failed}.",
+        group(calls as u64),
+        if calls == 1.0 { "" } else { "s" }
+    ))
+}
+
+/// "Top MCP server this week: github, 40 calls." `None` without MCP calls.
+pub fn top_mcp_sentence(period: &str, server: &str, calls: f64) -> Option<String> {
+    if calls <= 0.0 || server.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "Top MCP server {period}: {server}, {} call{}.",
+        group(calls as u64),
+        if calls == 1.0 { "" } else { "s" }
+    ))
+}
+
+/// "Biggest mover this week: claude-sonnet, up 120% to 1.2M tokens."
+/// Uses "new" when there was no usage before, "flat" changes give `None`.
+pub fn mover_sentence(period: &str, name: &str, current: f64, previous: f64) -> Option<String> {
+    if name.is_empty() || (current <= 0.0 && previous <= 0.0) {
+        return None;
+    }
+    let pct = (previous != 0.0).then(|| (current - previous) / previous * 100.0);
+    let how = match change(pct) {
+        None => "new".to_owned(),
+        Some(c) if c == "flat" => return None,
+        Some(c) => c,
+    };
+    Some(format!(
+        "Biggest mover {period}: {name}, {how} to {} tokens.",
+        tokens(current)
+    ))
+}
+
+/// Of `(name, current, previous)` rows, the one with the largest absolute change.
+pub fn biggest_mover(rows: &[(String, f64, f64)]) -> Option<&(String, f64, f64)> {
+    rows.iter().filter(|r| r.1 != r.2).max_by(|a, b| {
+        (a.1 - a.2)
+            .abs()
+            .total_cmp(&(b.1 - b.2).abs())
+            .then_with(|| b.0.cmp(&a.0))
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,5 +221,38 @@ mod tests {
         assert_eq!(app_label("cursor"), "Cursor");
         assert_eq!(app_label("claude_code"), "Claude Code");
         assert_eq!(app_label("my-tool"), "my-tool");
+    }
+
+    #[test]
+    fn tool_mcp_and_mover_sentences() {
+        assert_eq!(
+            top_tool_sentence("this week", "read_file", 1200.0, 3.0).as_deref(),
+            Some("Top tool this week: read_file, 1,200 calls (3 failed).")
+        );
+        assert_eq!(top_tool_sentence("this week", "x", 0.0, 0.0), None);
+        assert_eq!(
+            top_mcp_sentence("this week", "github", 1.0).as_deref(),
+            Some("Top MCP server this week: github, 1 call.")
+        );
+        assert_eq!(
+            mover_sentence("this week", "claude-sonnet", 1_200_000.0, 500_000.0).as_deref(),
+            Some("Biggest mover this week: claude-sonnet, up 140% to 1.2M tokens.")
+        );
+        assert_eq!(
+            mover_sentence("this week", "gpt-5", 2000.0, 0.0).as_deref(),
+            Some("Biggest mover this week: gpt-5, new to 2K tokens.")
+        );
+        assert_eq!(mover_sentence("this week", "a", 102.0, 100.0), None);
+    }
+
+    #[test]
+    fn biggest_mover_picks_largest_absolute_change() {
+        let rows = vec![
+            ("a".to_owned(), 100.0, 90.0),
+            ("b".to_owned(), 10.0, 500.0),
+            ("c".to_owned(), 7.0, 7.0),
+        ];
+        assert_eq!(biggest_mover(&rows).unwrap().0, "b");
+        assert!(biggest_mover(&rows[2..]).is_none());
     }
 }
