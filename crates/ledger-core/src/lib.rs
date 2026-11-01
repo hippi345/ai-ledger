@@ -21,6 +21,7 @@ pub mod rollup;
 pub mod settings;
 pub mod sources;
 pub mod stats;
+pub mod summary;
 pub mod sync;
 pub mod unknown_models;
 
