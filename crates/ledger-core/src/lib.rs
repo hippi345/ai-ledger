@@ -18,6 +18,7 @@ pub mod prices;
 pub mod reader;
 pub mod retention;
 pub mod rollup;
+pub mod sessions;
 pub mod settings;
 pub mod sources;
 pub mod stats;
