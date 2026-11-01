@@ -47,6 +47,17 @@ impl From<PriceOverride> for UserPrice {
     }
 }
 
+/// A model seen in events that has no price.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UnknownModelInfo {
+    pub model: String,
+    pub events: u64,
+    pub tokens: u64,
+    pub first_seen: String,
+    pub last_seen: String,
+}
+
 /// Logic callable without a Tauri runtime.
 pub mod core {
     use super::*;
@@ -55,6 +66,19 @@ pub mod core {
         Ok(overrides::list(&state.db())?
             .into_iter()
             .map(Into::into)
+            .collect())
+    }
+
+    pub fn unknown(state: &AppState) -> IpcResult<Vec<UnknownModelInfo>> {
+        Ok(ledger_core::unknown_models::list(&state.db())?
+            .into_iter()
+            .map(|u| UnknownModelInfo {
+                model: u.model,
+                events: u.events,
+                tokens: u.tokens,
+                first_seen: u.first_seen,
+                last_seen: u.last_seen,
+            })
             .collect())
     }
 
@@ -94,4 +118,11 @@ pub fn remove_price_override(
     effective_from: String,
 ) -> IpcResult<u32> {
     core::remove(&state, &model, &effective_from)
+}
+
+/// Lists models seen in events that have no price, most-used first.
+#[tauri::command]
+#[specta::specta]
+pub fn list_unknown_models(state: State<'_, AppState>) -> IpcResult<Vec<UnknownModelInfo>> {
+    core::unknown(&state)
 }
