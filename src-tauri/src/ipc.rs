@@ -83,6 +83,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::commands::prices::set_price_override,
             crate::commands::prices::remove_price_override,
             crate::commands::prices::list_unknown_models,
+            crate::commands::prices::list_prices,
             crate::autostart::set_launch_at_login,
             crate::commands::aggregate::aggregate,
             crate::commands::summary::summary_cards,
