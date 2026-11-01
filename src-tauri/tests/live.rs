@@ -107,3 +107,28 @@ fn prepare_queues_enabled_sources_for_catch_up() {
     assert_eq!(w.unwatched, vec![id], "no watch paths, so it is polled");
     assert_eq!(rx.recv_timeout(Duration::from_secs(1)).unwrap(), id);
 }
+
+#[test]
+fn paused_holds_changes_until_resumed() {
+    let (s, id) = state();
+    let s = std::sync::Arc::new(s);
+    ledger_core::settings::set(&s.db(), ledger_core::settings::keys::LIVE_PAUSED, &true).unwrap();
+    assert!(live::paused(&s));
+    let (tx, rx) = mpsc::channel();
+    let (done_tx, done_rx) = mpsc::channel();
+    let bg = std::sync::Arc::clone(&s);
+    let h = std::thread::spawn(move || {
+        live::run(&bg, rx, Duration::from_millis(10), |sid, _| {
+            done_tx.send(sid).unwrap()
+        });
+    });
+    tx.send(id).unwrap();
+    assert!(
+        done_rx.recv_timeout(Duration::from_millis(200)).is_err(),
+        "held while paused"
+    );
+    ledger_core::settings::set(&s.db(), ledger_core::settings::keys::LIVE_PAUSED, &false).unwrap();
+    assert_eq!(done_rx.recv_timeout(Duration::from_secs(5)).unwrap(), id);
+    drop(tx);
+    h.join().unwrap();
+}

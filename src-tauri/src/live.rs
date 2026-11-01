@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use ledger_core::debounce::Debouncer;
 use ledger_core::ingest::IngestStats;
-use ledger_core::{sources, sync};
+use ledger_core::{settings, sources, sync};
 
 use crate::state::AppState;
 use crate::watcher::{self, LiveWatch};
@@ -16,6 +16,11 @@ pub const POLL_EVERY: Duration = Duration::from_secs(5);
 
 /// Longest the loop sleeps when nothing is pending.
 const IDLE: Duration = Duration::from_secs(3600);
+
+/// True while the user has paused live updates (`live.paused`).
+pub fn paused(state: &AppState) -> bool {
+    settings::get_or(&state.db(), settings::keys::LIVE_PAUSED, false).unwrap_or(false)
+}
 
 /// Syncs one source by id. Missing or disabled sources are skipped (`Ok(None)`).
 pub fn sync_one(state: &AppState, id: i64) -> ledger_core::Result<Option<IngestStats>> {
@@ -56,6 +61,14 @@ pub fn run(
         } else {
             deb.due(now)
         };
+        if !closed && paused(state) {
+            // Hold changes until live updates resume; cursors stay put, so
+            // nothing is lost.
+            for id in due {
+                deb.touch(id, now);
+            }
+            continue;
+        }
         for id in due {
             match sync_one(state, id) {
                 Ok(Some(stats)) => on_sync(id, stats),
