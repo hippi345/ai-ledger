@@ -1,0 +1,93 @@
+/* Sticky header / filter bar and the Live pill (redesign §4.2). */
+.shell > main > header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--header-h);
+    padding: var(--space-3) var(--space-8);
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+}
+
+/* Live far left, range and chips in the middle, saved views right. */
+.shell > main > header > [role="group"][aria-label="Saved views"] {
+    margin-left: auto;
+}
+
+.live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 2px 0 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    font: var(--text-xs) var(--font-sans);
+    color: var(--text);
+    white-space: nowrap;
+}
+
+/* The ●/○ glyph becomes a 6px status dot (text stays for a11y). */
+.live > span[aria-hidden="true"] {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    overflow: hidden;
+    border-radius: var(--radius-full);
+    background: var(--success);
+    color: transparent;
+    font-size: 0;
+    animation: live-pulse 2s var(--ease) infinite;
+}
+
+.live.paused > span[aria-hidden="true"] {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--text-subtle);
+    animation: none;
+}
+
+.live > span:not([aria-hidden]) {
+    color: var(--text-subtle);
+}
+
+.live > button {
+    height: 22px;
+    margin-left: 2px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--text-muted);
+    font: 500 var(--text-xs) var(--font-sans);
+    cursor: pointer;
+    transition:
+        background-color var(--dur) var(--ease),
+        color var(--dur) var(--ease);
+}
+
+.live > button:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+@keyframes live-pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live > span[aria-hidden="true"] {
+        animation: none;
+    }
+}
