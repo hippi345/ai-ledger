@@ -28,6 +28,25 @@ pub fn run() {
             let state = state::AppState::open(&dir)?;
             tracing::info!(dir = %dir.display(), "ledger opened");
             app.manage(state);
+            let handle = app.handle().clone();
+            std::thread::Builder::new()
+                .name("ledger-live".into())
+                .spawn(move || {
+                    let st = handle.state::<state::AppState>();
+                    match live::prepare(&st) {
+                        Ok((_watch, rx)) => {
+                            live::run(&st, rx, ledger_core::debounce::DEFAULT_WINDOW, |id, s| {
+                                tracing::info!(
+                                    source = id,
+                                    inserted = s.inserted,
+                                    updated = s.updated,
+                                    "live sync"
+                                );
+                            })
+                        }
+                        Err(e) => tracing::warn!(error = %e, "live updates unavailable"),
+                    }
+                })?;
             Ok(())
         })
         .run(tauri::generate_context!())

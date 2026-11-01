@@ -99,3 +99,11 @@ fn poll_fallback_is_not_started_without_ids() {
     let (tx, _rx) = mpsc::channel();
     assert!(live::spawn_poll(vec![], tx, Duration::from_millis(5)).is_none());
 }
+
+#[test]
+fn prepare_queues_enabled_sources_for_catch_up() {
+    let (s, id) = state();
+    let (w, rx) = live::prepare(&s).unwrap();
+    assert_eq!(w.unwatched, vec![id], "no watch paths, so it is polled");
+    assert_eq!(rx.recv_timeout(Duration::from_secs(1)).unwrap(), id);
+}
