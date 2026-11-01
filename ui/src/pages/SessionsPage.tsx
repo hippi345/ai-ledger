@@ -28,6 +28,9 @@ const toRow = (s: SessionRow_Serialize) => [
 /** `2026-11-01T10:05:00Z` -> `2026-11-01 10:05` (UTC). */
 const when = (ts: string) => ts.slice(0, 16).replace("T", " ");
 
+/** Matches ledger_core::sessions::LIST_LIMIT. */
+export const SESSION_LIMIT = 500;
+
 type Props = { onOpen?: (id: string) => void };
 
 /** Sessions list, newest first; selecting one opens its timeline. */
@@ -38,6 +41,12 @@ export function SessionsPage({ onOpen }: Props) {
   if (sessions.length === 0) return <p>No sessions in this range.</p>;
   return (
     <>
+      {sessions.length >= SESSION_LIMIT && (
+        <p role="note">
+          Showing the first {SESSION_LIMIT} sessions (newest first). Narrow the
+          range or filters to see the rest.
+        </p>
+      )}
       <ExportCsvButton
         name="Sessions"
         header={HEADER}

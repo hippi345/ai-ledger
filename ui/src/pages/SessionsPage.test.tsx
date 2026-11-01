@@ -41,3 +41,18 @@ test("empty and error states", () => {
   rerender(<SessionsPage />);
   expect(screen.getByRole("alert")).toHaveTextContent("locked");
 });
+
+test("notes when the 500-session cap is hit", () => {
+  const many = Array.from({ length: 500 }, (_, i) => ({ ...s1, id: `s${i}` }));
+  useSessions.mockReturnValue({ sessions: many, error: null });
+  render(<SessionsPage />);
+  expect(screen.getByRole("note")).toHaveTextContent(
+    "Showing the first 500 sessions",
+  );
+});
+
+test("no note under the cap", () => {
+  useSessions.mockReturnValue({ sessions: [s1], error: null });
+  render(<SessionsPage />);
+  expect(screen.queryByRole("note")).toBeNull();
+});
