@@ -37,6 +37,10 @@ export const commands = {
 	listPrices: () => typedError<PriceRow_Serialize[], IpcError>(__TAURI_INVOKE("list_prices")),
 	/**  Turns launch at login on or off and saves the choice. */
 	setLaunchAtLogin: (on: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
+	/**  Current proxy settings and whether it is listening. */
+	proxyStatus: () => typedError<ProxyStatus, IpcError>(__TAURI_INVOKE("proxy_status")),
+	/**  Turns the proxy on or off and sets its port, then applies it. */
+	setProxy: (enabled: boolean, port: number) => typedError<ProxyStatus, IpcError>(__TAURI_INVOKE("set_proxy", { enabled, port })),
 	/**  Sums a metric over rollups, grouped and filtered (spec §8). */
 	aggregate: (query: AggQuery_Deserialize) => typedError<AggResult_Serialize, IpcError>(__TAURI_INVOKE("aggregate", { query })),
 	/**
@@ -253,6 +257,11 @@ export type SessionRow_Serialize = {
 };
 
 /**  One stored setting. */
+/**
+ *  What the Settings panel shows.
+ */
+export type ProxyStatus = { enabled: boolean; port: number; running: boolean; error: string | null };
+
 export type SettingEntry = {
 	key: string,
 	value: Value,

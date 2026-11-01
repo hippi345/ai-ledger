@@ -20,6 +20,7 @@ pub fn default_registry() -> Registry {
     let _ = r.register(Box::new(reader_cursor::CursorReader::default()));
     let _ = r.register(Box::new(reader_claude_code::ClaudeCodeReader::default()));
     let _ = r.register(Box::new(reader_csv_import::CsvImportReader));
+    let _ = r.register(Box::new(reader_proxy::ProxyReader));
     r
 }
 

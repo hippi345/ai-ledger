@@ -5,6 +5,7 @@ pub mod commands;
 pub mod error;
 pub mod ipc;
 pub mod live;
+pub mod proxy;
 pub mod retention;
 pub mod state;
 pub mod tray;
@@ -48,6 +49,9 @@ pub fn run() {
             tracing::info!(dir = %dir.display(), "ledger opened");
             let launch = autostart::wanted(&state);
             app.manage(state);
+            app.manage(proxy::ProxyState::default());
+            // Off unless the user turned it on (proxy.enabled defaults to false).
+            proxy::apply(app.handle());
             if let Err(e) = autostart::apply(app.handle(), launch) {
                 tracing::warn!(error = %e, "could not sync launch at login");
             }

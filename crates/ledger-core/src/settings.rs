@@ -18,6 +18,10 @@ pub mod keys {
     pub const LIVE_PAUSED: &str = "live.paused";
     /// Start AI Ledger when the user logs in. Default false (opt-in).
     pub const LAUNCH_AT_LOGIN: &str = "app.launch_at_login";
+    /// Run the localhost logging proxy. Default false (opt-in).
+    pub const PROXY_ENABLED: &str = "proxy.enabled";
+    /// Localhost port of the logging proxy. Default 8788.
+    pub const PROXY_PORT: &str = "proxy.port";
     /// Internal: retention cutoff (RFC 3339 UTC). Rollup buckets that start
     /// before it may cover pruned events, so they are frozen. Unset = none.
     pub const PRUNED_BEFORE: &str = "retention.pruned_before";

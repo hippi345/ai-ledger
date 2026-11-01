@@ -39,6 +39,7 @@ ledger-core = { path = "../crates/ledger-core" }
 reader-cursor = { path = "../crates/readers/cursor" }
 reader-claude-code = { path = "../crates/readers/claude_code" }
 reader-csv-import = { path = "../crates/readers/csv_import" }
+reader-proxy = { path = "../crates/readers/proxy" }
 # Specta v2 is pre-release; pin exact versions as tauri-specta requires.
 specta = { version = "=2.0.0-rc.26", features = ["derive", "serde_json"] }
 specta-typescript = "=0.0.13"
