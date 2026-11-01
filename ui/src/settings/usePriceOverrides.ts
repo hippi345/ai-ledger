@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { commands, type PriceOverride } from "../bindings";
+import { commands, type PriceOverride, type UnknownModelInfo } from "../bindings";
 
 type Result<T> = { status: "ok"; data: T } | { status: "error"; error: { code: string; message: string } };
 
-/** Loads price overrides and exposes save/remove (each re-prices all events). */
+/** Loads price overrides and unpriced models and exposes save/remove (each re-prices all events). */
 export function usePriceOverrides() {
   const [overrides, setOverrides] = useState<PriceOverride[]>([]);
+  const [unknown, setUnknown] = useState<UnknownModelInfo[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -23,6 +24,8 @@ export function usePriceOverrides() {
   const refresh = useCallback(async () => {
     const list = await run(commands.listPriceOverrides());
     if (list) setOverrides(list);
+    const u = await run(commands.listUnknownModels());
+    if (u) setUnknown(u);
   }, [run]);
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export function usePriceOverrides() {
 
   return {
     overrides,
+    unknown,
     busy,
     error,
     notice,
