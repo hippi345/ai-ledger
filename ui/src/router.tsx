@@ -14,12 +14,8 @@ import { SourcesSettings } from "./settings/SourcesSettings";
 import { Summary } from "./summary/Summary";
 import { DateRangePicker } from "./filters/DateRangePicker";
 import { FilterBar } from "./filters/FilterBar";
-import {
-  FILTER_DIMS,
-  parseFilterSearch,
-  toggleFilter,
-  type FilterSearch,
-} from "./filters/filters";
+import { parseFilterSearch, type FilterSearch } from "./filters/filters";
+import { useFilters } from "./filters/useFilters";
 import {
   parseRangeSearch,
   resolveRange,
@@ -65,25 +61,9 @@ function GlobalRange() {
 
 /** Active filter chips, synced to the URL search. */
 function GlobalFilters() {
-  const search = useSearch({ strict: false }) as FilterSearch;
-  const navigate = useNavigate();
-  const set = (next: FilterSearch) =>
-    void navigate({
-      to: ".",
-      search: (prev: Record<string, unknown>) => {
-        const out: Record<string, unknown> = { ...prev };
-        for (const d of FILTER_DIMS) out[d] = next[d];
-        return out;
-      },
-    });
+  const f = useFilters();
   return (
-    <FilterBar
-      filters={parseFilterSearch(search)}
-      onRemove={(dim, value) =>
-        set(toggleFilter(parseFilterSearch(search), dim, value))
-      }
-      onClear={() => set({})}
-    />
+    <FilterBar filters={f.filters} onRemove={f.toggle} onClear={f.clear} />
   );
 }
 
@@ -135,8 +115,12 @@ function Page({
 
 const root = createRootRoute({
   component: Shell,
-  validateSearch: (raw: Record<string, unknown>): RangeSearch =>
-    parseRangeSearch(raw),
+  validateSearch: (
+    raw: Record<string, unknown>,
+  ): RangeSearch & FilterSearch => ({
+    ...parseRangeSearch(raw),
+    ...parseFilterSearch(raw),
+  }),
 });
 
 const routes = PAGES.map((p) =>
