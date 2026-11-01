@@ -86,15 +86,20 @@ pub struct Row {
     pub value: f64,
 }
 
-/// Runs `q` against the rollups. Rows are ordered by their keys.
-pub fn aggregate(conn: &Connection, q: &Query) -> Result<Vec<Row>> {
-    let mut params: Vec<Value> = vec![q.since.clone().into(), q.until.clone().into()];
+/// Sums `metric_sql` over `table` for `since <= bucket < until`, filtered by
+/// `(column, allowed values)` pairs and grouped by `cols`.
+fn sum_grouped(
+    conn: &Connection,
+    table: &str,
+    since: &str,
+    until: &str,
+    filters: &[(&str, &Vec<String>)],
+    cols: &[&str],
+    metric_sql: &str,
+) -> Result<Vec<Row>> {
+    let mut params: Vec<Value> = vec![since.to_owned().into(), until.to_owned().into()];
     let mut wh = String::from("bucket >= ?1 AND bucket < ?2");
-    for (col, vals) in [
-        ("app", &q.filters.app),
-        ("model", &q.filters.model),
-        ("project", &q.filters.project),
-    ] {
+    for (col, vals) in filters {
         if vals.is_empty() {
             continue;
         }
@@ -107,18 +112,13 @@ pub fn aggregate(conn: &Connection, q: &Query) -> Result<Vec<Row>> {
             .collect();
         wh.push_str(&format!(" AND {col} IN ({})", marks.join(", ")));
     }
-    let cols: Vec<&str> = q.group_by.iter().map(|d| d.column()).collect();
     let select = cols.iter().map(|c| format!("{c}, ")).collect::<String>();
     let group = if cols.is_empty() {
         String::new()
     } else {
         format!(" GROUP BY {0} ORDER BY {0}", cols.join(", "))
     };
-    let sql = format!(
-        "SELECT {select}COALESCE({}, 0) FROM {} WHERE {wh}{group}",
-        q.metric.sql(),
-        q.grain.table()
-    );
+    let sql = format!("SELECT {select}COALESCE({metric_sql}, 0) FROM {table} WHERE {wh}{group}");
     let mut st = conn.prepare(&sql)?;
     let n = cols.len();
     let rows = st.query_map(rusqlite::params_from_iter(params), |r| {
@@ -129,6 +129,86 @@ pub fn aggregate(conn: &Connection, q: &Query) -> Result<Vec<Row>> {
         Ok(Row { keys, value })
     })?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// Runs `q` against the rollups. Rows are ordered by their keys.
+pub fn aggregate(conn: &Connection, q: &Query) -> Result<Vec<Row>> {
+    let cols: Vec<&str> = q.group_by.iter().map(|d| d.column()).collect();
+    sum_grouped(
+        conn,
+        q.grain.table(),
+        &q.since,
+        &q.until,
+        &[
+            ("app", &q.filters.app),
+            ("model", &q.filters.model),
+            ("project", &q.filters.project),
+        ],
+        &cols,
+        q.metric.sql(),
+    )
+}
+
+/// What to sum over tool/MCP calls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolMetric {
+    Calls,
+    Failures,
+    DurationMs,
+}
+
+/// A dimension for tool/MCP queries. Calls without a server have `mcp_server = ""`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolDim {
+    Bucket,
+    App,
+    Tool,
+    McpServer,
+}
+
+/// A tool/MCP call query over `rollups_tools_*`, same range rules as [`Query`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolQuery {
+    pub since: String,
+    pub until: String,
+    pub grain: Grain,
+    #[serde(default)]
+    pub group_by: Vec<ToolDim>,
+    #[serde(default)]
+    pub app: Vec<String>,
+    #[serde(default)]
+    pub mcp_server: Vec<String>,
+    pub metric: ToolMetric,
+}
+
+/// Runs a tool/MCP call query. Rows are ordered by their keys.
+pub fn aggregate_tools(conn: &Connection, q: &ToolQuery) -> Result<Vec<Row>> {
+    let cols: Vec<&str> = q
+        .group_by
+        .iter()
+        .map(|d| match d {
+            ToolDim::Bucket => "bucket",
+            ToolDim::App => "app",
+            ToolDim::Tool => "tool",
+            ToolDim::McpServer => "mcp_server",
+        })
+        .collect();
+    let metric = match q.metric {
+        ToolMetric::Calls => "SUM(calls)",
+        ToolMetric::Failures => "SUM(failures)",
+        ToolMetric::DurationMs => "SUM(duration_ms)",
+    };
+    sum_grouped(
+        conn,
+        q.grain.tools_table(),
+        &q.since,
+        &q.until,
+        &[("app", &q.app), ("mcp_server", &q.mcp_server)],
+        &cols,
+        metric,
+    )
 }
 
 /// Key used for the group that collects everything outside the top N.
@@ -266,5 +346,43 @@ mod tests {
         );
         assert_eq!(top_n(rows, 0)[0], row(&["b"], 5.0));
         assert!(top_n(vec![], 3).is_empty());
+    }
+
+    #[test]
+    fn tool_queries_group_and_filter() {
+        let c = seed();
+        for (bucket, tool, mcp, calls) in [
+            ("2026-10-01", "read_file", "", 3),
+            ("2026-10-01", "search", "github", 2),
+            ("2026-10-02", "issues", "github", 4),
+        ] {
+            c.execute(
+                "INSERT INTO rollups_tools_day VALUES (?1, 'cursor', ?2, ?3, ?4, 0, 0)",
+                rusqlite::params![bucket, tool, mcp, calls],
+            )
+            .unwrap();
+        }
+        let q = ToolQuery {
+            since: "2026-10-01".into(),
+            until: "2026-10-03".into(),
+            grain: Grain::Day,
+            group_by: vec![ToolDim::McpServer],
+            app: vec![],
+            mcp_server: vec![],
+            metric: ToolMetric::Calls,
+        };
+        assert_eq!(
+            aggregate_tools(&c, &q).unwrap(),
+            vec![row(&[""], 3.0), row(&["github"], 6.0)]
+        );
+        let q = ToolQuery {
+            group_by: vec![ToolDim::Tool],
+            mcp_server: vec!["github".into()],
+            ..q
+        };
+        assert_eq!(
+            aggregate_tools(&c, &q).unwrap(),
+            vec![row(&["issues"], 4.0), row(&["search"], 2.0)]
+        );
     }
 }
