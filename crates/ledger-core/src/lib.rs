@@ -7,6 +7,7 @@ pub mod backup;
 pub mod cost;
 pub mod db;
 pub mod debounce;
+pub mod delta;
 pub mod error;
 pub mod ingest;
 pub mod logging;
