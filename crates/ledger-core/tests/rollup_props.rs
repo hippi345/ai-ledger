@@ -3,6 +3,7 @@
 
 #![allow(clippy::unwrap_used)]
 
+use ledger_core::aggregate::{aggregate, Dim, Filters, Metric, Query};
 use ledger_core::ingest::{upsert_events, NewEvent};
 use ledger_core::reader::{SourceCandidate, Tier};
 use ledger_core::rollup::{self, Grain};
@@ -116,5 +117,30 @@ proptest! {
         rollup::rebuild_all(&mut c).unwrap();
         let full: Vec<_> = Grain::ALL.iter().map(|g| dump(&c, g.table())).collect();
         prop_assert_eq!(incremental, full);
+    }
+
+    #[test]
+    fn aggregate_totals_and_groups_match_events(raw in prop::collection::vec(event(), 0..60)) {
+        let (mut c, s) = ledger();
+        let evs: Vec<_> = raw.into_iter().enumerate().map(|(i, e)| to_event(i, e)).collect();
+        upsert_events(&mut c, s, &evs).unwrap();
+        rollup::rebuild_all(&mut c).unwrap();
+        let want: i64 = c
+            .query_row("SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM events", [], |r| r.get(0))
+            .unwrap();
+        for grain in Grain::ALL {
+            for group_by in [vec![], vec![Dim::Model], vec![Dim::Bucket, Dim::Project]] {
+                let q = Query {
+                    since: "2000-01-01".into(),
+                    until: "2100-01-01".into(),
+                    grain,
+                    group_by,
+                    filters: Filters::default(),
+                    metric: Metric::Tokens,
+                };
+                let total: f64 = aggregate(&c, &q).unwrap().iter().map(|r| r.value).sum();
+                prop_assert_eq!(total, want as f64);
+            }
+        }
     }
 }
