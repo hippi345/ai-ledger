@@ -18,6 +18,7 @@ pub fn sync_source(
     let cursor = sources::cursor(conn, source.id)?;
     let (events, next) = registry.read_source(&source.cfg(), cursor)?;
     let stats = upsert_events(conn, source.id, &events)?;
+    crate::rollup::refresh_for(conn, &events)?;
     sources::save_cursor(conn, source.id, &next)?;
     Ok(stats)
 }
@@ -94,6 +95,12 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM events", [], |r| r.get(0))
             .unwrap();
         assert_eq!(n, 2);
+        let rolled: i64 = c
+            .query_row("SELECT SUM(input_tokens) FROM rollups_day", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(rolled, 1 + 2, "rollups follow each sync");
     }
 
     #[test]
