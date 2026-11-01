@@ -34,6 +34,37 @@ pub fn totals_between(conn: &Connection, since_utc: &str, until_utc: &str) -> Re
     })
 }
 
+/// `" AND ..."` clauses narrowing raw `events` by app/model/project (unknown
+/// model/project match `""`), pushing their values onto `params`. Empty when
+/// no filter is set.
+pub(crate) fn event_filter_sql(
+    filters: &Filters,
+    params: &mut Vec<rusqlite::types::Value>,
+) -> String {
+    let mut wh = String::new();
+    for (col, vals) in [
+        ("app", &filters.app),
+        ("model", &filters.model),
+        ("project", &filters.project),
+    ] {
+        if vals.is_empty() {
+            continue;
+        }
+        let marks: Vec<String> = vals
+            .iter()
+            .map(|v| {
+                params.push(v.clone().into());
+                format!("?{}", params.len())
+            })
+            .collect();
+        wh.push_str(&format!(
+            " AND COALESCE({col}, '') IN ({})",
+            marks.join(", ")
+        ));
+    }
+    wh
+}
+
 /// One cell of the hour-of-day x day-of-week activity heatmap.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct HeatCell {
@@ -58,27 +89,10 @@ pub fn heatmap(
 ) -> Result<Vec<HeatCell>> {
     let mut params: Vec<rusqlite::types::Value> =
         vec![since_utc.to_owned().into(), until_utc.to_owned().into()];
-    let mut wh = String::from("ts_utc >= ?1 AND ts_utc < ?2");
-    for (col, vals) in [
-        ("app", &filters.app),
-        ("model", &filters.model),
-        ("project", &filters.project),
-    ] {
-        if vals.is_empty() {
-            continue;
-        }
-        let marks: Vec<String> = vals
-            .iter()
-            .map(|v| {
-                params.push(v.clone().into());
-                format!("?{}", params.len())
-            })
-            .collect();
-        wh.push_str(&format!(
-            " AND COALESCE({col}, '') IN ({})",
-            marks.join(", ")
-        ));
-    }
+    let wh = format!(
+        "ts_utc >= ?1 AND ts_utc < ?2{}",
+        event_filter_sql(filters, &mut params)
+    );
     let mut st = conn.prepare(&format!(
         "SELECT (CAST(strftime('%w', ts_utc) AS INTEGER) + 6) % 7, CAST(strftime('%H', ts_utc) AS INTEGER),
                 COUNT(*),
