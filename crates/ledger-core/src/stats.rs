@@ -3,6 +3,7 @@
 use rusqlite::Connection;
 use serde::Serialize;
 
+use crate::aggregate::Filters;
 use crate::Result;
 
 /// Usage totals over a time span.
@@ -45,18 +46,48 @@ pub struct HeatCell {
 }
 
 /// Activity by UTC weekday and hour for events with `since_utc <= ts_utc <
-/// until_utc`. Reads raw events (rollups are day-grained), so it covers what
-/// retention still keeps. Only non-empty cells are returned.
-pub fn heatmap(conn: &Connection, since_utc: &str, until_utc: &str) -> Result<Vec<HeatCell>> {
-    let mut st = conn.prepare(
+/// until_utc`, narrowed by the same app/model/project filters as aggregates
+/// (unknown model/project match `""`). Reads raw events (rollups are
+/// day-grained), so it covers what retention still keeps. Only non-empty
+/// cells are returned.
+pub fn heatmap(
+    conn: &Connection,
+    since_utc: &str,
+    until_utc: &str,
+    filters: &Filters,
+) -> Result<Vec<HeatCell>> {
+    let mut params: Vec<rusqlite::types::Value> =
+        vec![since_utc.to_owned().into(), until_utc.to_owned().into()];
+    let mut wh = String::from("ts_utc >= ?1 AND ts_utc < ?2");
+    for (col, vals) in [
+        ("app", &filters.app),
+        ("model", &filters.model),
+        ("project", &filters.project),
+    ] {
+        if vals.is_empty() {
+            continue;
+        }
+        let marks: Vec<String> = vals
+            .iter()
+            .map(|v| {
+                params.push(v.clone().into());
+                format!("?{}", params.len())
+            })
+            .collect();
+        wh.push_str(&format!(
+            " AND COALESCE({col}, '') IN ({})",
+            marks.join(", ")
+        ));
+    }
+    let mut st = conn.prepare(&format!(
         "SELECT (CAST(strftime('%w', ts_utc) AS INTEGER) + 6) % 7, CAST(strftime('%H', ts_utc) AS INTEGER),
                 COUNT(*),
                 SUM(input_tokens + output_tokens + cache_read_tokens + cache_write_tokens
                     + cache_write_1h_tokens + cache_write_12h_tokens)
-         FROM events WHERE ts_utc >= ?1 AND ts_utc < ?2
-         GROUP BY 1, 2 ORDER BY 1, 2",
-    )?;
-    let rows = st.query_map([since_utc, until_utc], |r| {
+         FROM events WHERE {wh}
+         GROUP BY 1, 2 ORDER BY 1, 2"
+    ))?;
+    let rows = st.query_map(rusqlite::params_from_iter(params), |r| {
         let n = |v: i64| u64::try_from(v).unwrap_or(0);
         Ok(HeatCell {
             weekday: u8::try_from(r.get::<_, i64>(0)?).unwrap_or(0),
@@ -150,7 +181,13 @@ mod tests {
             ],
         )
         .unwrap();
-        let h = heatmap(&c, "2026-11-02T00:00:00Z", "2026-11-09T00:00:00Z").unwrap();
+        let h = heatmap(
+            &c,
+            "2026-11-02T00:00:00Z",
+            "2026-11-09T00:00:00Z",
+            &Filters::default(),
+        )
+        .unwrap();
         assert_eq!(
             h,
             vec![
@@ -168,5 +205,38 @@ mod tests {
                 }
             ]
         );
+    }
+
+    #[test]
+    fn heatmap_applies_filters_with_unknown_as_empty() {
+        let mut c = db::open_in_memory().unwrap();
+        let cand = SourceCandidate {
+            reader_id: "t".into(),
+            label: "T".into(),
+            config: serde_json::json!({}),
+        };
+        let s = sources::add(&c, &cand, Tier::Native).unwrap();
+        let mut a = ev("2026-11-02T09:00:00Z", 10, "a");
+        a.model = Some("gpt-5".into());
+        let mut b = ev("2026-11-02T10:00:00Z", 20, "b");
+        b.app = "other".into();
+        upsert_events(&mut c, s.id, &[a, b]).unwrap();
+        let span = ("2026-11-02T00:00:00Z", "2026-11-03T00:00:00Z");
+        let hours = |f: Filters| -> Vec<u8> {
+            heatmap(&c, span.0, span.1, &f)
+                .unwrap()
+                .iter()
+                .map(|h| h.hour)
+                .collect()
+        };
+        let f = |app: &[&str], model: &[&str]| Filters {
+            app: app.iter().map(|s| s.to_string()).collect(),
+            model: model.iter().map(|s| s.to_string()).collect(),
+            project: vec![],
+        };
+        assert_eq!(hours(f(&[], &["gpt-5"])), vec![9]);
+        assert_eq!(hours(f(&["other"], &[])), vec![10]);
+        assert_eq!(hours(f(&[], &[""])), vec![10]);
+        assert_eq!(hours(f(&["t"], &[""])), Vec::<u8>::new());
     }
 }

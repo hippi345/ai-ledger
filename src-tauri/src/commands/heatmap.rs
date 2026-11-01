@@ -22,6 +22,7 @@ pub fn run(state: &AppState, since: &str, until: &str) -> IpcResult<Vec<HeatCell
         &state.db(),
         &format!("{since}T00:00:00Z"),
         &format!("{until}T00:00:00Z"),
+        &ledger_core::aggregate::Filters::default(),
     )?;
     Ok(cells
         .into_iter()
