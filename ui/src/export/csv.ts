@@ -20,11 +20,18 @@ export function toCsv(header: string[], rows: Cell[][]): string {
   );
 }
 
-/** A safe file name: `ai-ledger-<name>-<date>.csv`. */
-export function csvFileName(name: string, date: string): string {
+/** A safe file name: `ai-ledger-<name>-<date>.<ext>`. */
+export function exportFileName(
+  name: string,
+  date: string,
+  ext: string,
+): string {
   const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
-  return `ai-ledger-${slug || "export"}-${date}.csv`;
+  return `ai-ledger-${slug || "export"}-${date}.${ext}`;
 }
+
+export const csvFileName = (name: string, date: string) =>
+  exportFileName(name, date, "csv");
