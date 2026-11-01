@@ -9,6 +9,7 @@ export type Fixtures = Record<string, unknown>;
 
 export const DEFAULT_FIXTURES: Fixtures = {
   get_setting: null,
+  proxy_status: { enabled: false, port: 8788, running: false, error: null },
   set_setting: null,
   reset_setting: true,
   list_settings: [],

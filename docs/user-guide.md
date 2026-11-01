@@ -57,6 +57,18 @@ over* (on pace to exceed it), and *over*.
 - Data lives in a local SQLite file in the app data directory. Uninstalling
   the app does not delete it; remove that directory to erase everything.
 
+## Local logging proxy (optional, off by default)
+
+Settings → **Local logging proxy** runs a small proxy on `127.0.0.1` for
+API calls that no reader can see, such as your own scripts. Set your
+client's base URL to `http://127.0.0.1:8788/anthropic` (Anthropic) or
+`http://127.0.0.1:8788/openai/v1` (OpenAI).
+The proxy forwards only to `api.anthropic.com` and `api.openai.com`. It
+rejects requests from browsers and from any host other than localhost.
+It records only the model and token counts. Prompts, responses and API
+keys are never stored or logged. This is the only part of AI Ledger that
+makes network requests, and it does so only while it is on.
+
 ## Startup and tray
 
 Under **Settings → Startup** you can launch AI Ledger at login. The tray

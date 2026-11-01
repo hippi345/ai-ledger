@@ -14,3 +14,40 @@
 
 pub mod server;
 pub mod usage;
+
+use std::path::PathBuf;
+
+use ledger_core::reader::{Cursor, RawEvent, Reader, SourceCandidate, SourceCfg, Tier};
+
+pub const READER_ID: &str = "proxy";
+
+/// Default localhost port for the proxy.
+pub const DEFAULT_PORT: u16 = 8788;
+
+/// Registry entry for the proxy source. The proxy pushes events as it sees
+/// them, so there is nothing to detect, watch or re-read; this only keeps
+/// the source healthy and labeled.
+#[derive(Debug, Default)]
+pub struct ProxyReader;
+
+impl Reader for ProxyReader {
+    fn id(&self) -> &str {
+        READER_ID
+    }
+    fn tier(&self) -> Tier {
+        Tier::Capture
+    }
+    fn detect(&self) -> Vec<SourceCandidate> {
+        Vec::new()
+    }
+    fn watch_paths(&self, _cfg: &SourceCfg) -> Vec<PathBuf> {
+        Vec::new()
+    }
+    fn read_since(
+        &self,
+        _cfg: &SourceCfg,
+        cursor: Option<Cursor>,
+    ) -> ledger_core::Result<(Vec<RawEvent>, Cursor)> {
+        Ok((Vec::new(), cursor.unwrap_or_default()))
+    }
+}

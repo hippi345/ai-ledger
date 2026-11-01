@@ -33,6 +33,7 @@ dependencies = [
  "reader-claude-code",
  "reader-csv-import",
  "reader-cursor",
+ "reader-proxy",
  "rusqlite",
  "serde",
  "serde_json",

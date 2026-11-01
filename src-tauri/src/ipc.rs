@@ -85,6 +85,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::commands::prices::list_unknown_models,
             crate::commands::prices::list_prices,
             crate::autostart::set_launch_at_login,
+            crate::proxy::proxy_status,
+            crate::proxy::set_proxy,
             crate::commands::aggregate::aggregate,
             crate::commands::summary::summary_cards,
             crate::commands::tools::aggregate_tools,

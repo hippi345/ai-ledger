@@ -5,6 +5,7 @@ const READER_NAMES: Record<string, string> = {
   claude_code: "Claude Code",
   csv_import: "CSV/JSON import",
   manual: "Manual entries",
+  proxy: "Local logging proxy",
 };
 
 const TIER_NAMES: Record<number, string> = {
