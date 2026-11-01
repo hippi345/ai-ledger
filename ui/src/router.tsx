@@ -1,6 +1,8 @@
 import {
   Link,
   Outlet,
+  useNavigate,
+  useSearch,
   createHashHistory,
   createRootRoute,
   createRoute,
@@ -10,6 +12,13 @@ import {
 import { PricesSettings } from "./settings/PricesSettings";
 import { SourcesSettings } from "./settings/SourcesSettings";
 import { Summary } from "./summary/Summary";
+import { DateRangePicker } from "./filters/DateRangePicker";
+import {
+  parseRangeSearch,
+  resolveRange,
+  utcToday,
+  type RangeSearch,
+} from "./filters/range";
 
 /** Sidebar pages in order (spec §D). */
 export const PAGES = [
@@ -23,6 +32,30 @@ export const PAGES = [
   { path: "/settings", label: "Settings" },
 ] as const;
 
+/** The global date-range picker, synced to the URL search. */
+function GlobalRange() {
+  const search = useSearch({ strict: false }) as RangeSearch;
+  const navigate = useNavigate();
+  return (
+    <DateRangePicker
+      value={resolveRange(search, utcToday())}
+      search={search}
+      onChange={(next) =>
+        void navigate({
+          to: ".",
+          search: (prev: Record<string, unknown>) => ({
+            ...prev,
+            range: undefined,
+            from: undefined,
+            to: undefined,
+            ...next,
+          }),
+        })
+      }
+    />
+  );
+}
+
 function Shell() {
   return (
     <div className="shell">
@@ -31,7 +64,11 @@ function Shell() {
         <ul>
           {PAGES.map((p) => (
             <li key={p.path}>
-              <Link to={p.path} activeOptions={{ exact: true }} activeProps={{ "aria-current": "page" }}>
+              <Link
+                to={p.path}
+                activeOptions={{ exact: true }}
+                activeProps={{ "aria-current": "page" }}
+              >
                 {p.label}
               </Link>
             </li>
@@ -40,13 +77,22 @@ function Shell() {
         <p>Local-first. No data leaves this machine.</p>
       </nav>
       <main>
+        <header>
+          <GlobalRange />
+        </header>
         <Outlet />
       </main>
     </div>
   );
 }
 
-function Page({ title, children }: { title: string; children?: React.ReactNode }) {
+function Page({
+  title,
+  children,
+}: {
+  title: string;
+  children?: React.ReactNode;
+}) {
   return (
     <section aria-labelledby="page-h">
       <h2 id="page-h">{title}</h2>
@@ -55,7 +101,11 @@ function Page({ title, children }: { title: string; children?: React.ReactNode }
   );
 }
 
-const root = createRootRoute({ component: Shell });
+const root = createRootRoute({
+  component: Shell,
+  validateSearch: (raw: Record<string, unknown>): RangeSearch =>
+    parseRangeSearch(raw),
+});
 
 const routes = PAGES.map((p) =>
   createRoute({

@@ -1,6 +1,13 @@
 /** Global date range (spec §D): presets or custom, as UTC `YYYY-MM-DD`, `[since, until)`. */
 
-export const PRESETS = ["today", "7d", "30d", "month", "90d", "custom"] as const;
+export const PRESETS = [
+  "today",
+  "7d",
+  "30d",
+  "month",
+  "90d",
+  "custom",
+] as const;
 export type Preset = (typeof PRESETS)[number];
 
 export type RangeSearch = { range?: Preset; from?: string; to?: string };
@@ -18,11 +25,15 @@ export const PRESET_LABELS: Record<Preset, string> = {
 const DAY = 86_400_000;
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
 const isDate = (s: unknown): s is string =>
-  typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && iso(Date.parse(`${s}T00:00:00Z`)) === s;
+  typeof s === "string" &&
+  /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+  iso(Date.parse(`${s}T00:00:00Z`)) === s;
 
 /** Validates raw URL search params; anything unknown falls back to defaults. */
 export function parseRangeSearch(raw: Record<string, unknown>): RangeSearch {
-  const range = PRESETS.includes(raw.range as Preset) ? (raw.range as Preset) : undefined;
+  const range = PRESETS.includes(raw.range as Preset)
+    ? (raw.range as Preset)
+    : undefined;
   const out: RangeSearch = {};
   if (range) out.range = range;
   if (isDate(raw.from)) out.from = raw.from;
@@ -42,11 +53,19 @@ export function resolveRange(s: RangeSearch, today: string): DateRange {
     case "90d":
       return { preset: "90d", since: iso(t - 89 * DAY), until: tomorrow };
     case "month":
-      return { preset: "month", since: `${today.slice(0, 8)}01`, until: tomorrow };
+      return {
+        preset: "month",
+        since: `${today.slice(0, 8)}01`,
+        until: tomorrow,
+      };
     case "custom":
       if (s.from && s.to && s.from <= s.to) {
         // `to` is inclusive in the UI, exclusive in queries.
-        return { preset: "custom", since: s.from, until: iso(Date.parse(`${s.to}T00:00:00Z`) + DAY) };
+        return {
+          preset: "custom",
+          since: s.from,
+          until: iso(Date.parse(`${s.to}T00:00:00Z`) + DAY),
+        };
       }
       return resolveRange({ range: "30d" }, today);
     default:
