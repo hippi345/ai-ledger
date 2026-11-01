@@ -1,5 +1,5 @@
 import type { EChartsCoreOption } from "echarts/core";
-import { PALETTE, formatCost } from "./theme";
+import { areaGradient, LEGEND_GRID, LEGEND_TOP, PALETTE, formatCost } from "./theme";
 
 /** Daily cost points, `day` as UTC `YYYY-MM-DD`. */
 export type CostPoint = { day: string; cost: number };
@@ -45,17 +45,26 @@ export function costTrendOption(
   });
   return {
     tooltip: { trigger: "axis", valueFormatter: (v: number) => formatCost(v) },
-    legend: { bottom: 0 },
+    legend: LEGEND_TOP,
+    grid: LEGEND_GRID,
     xAxis: { type: "category", data: days, boundaryGap: false },
     yAxis: { type: "value", axisLabel: { formatter: (v: number) => formatCost(v) } },
     series: [
-      { name: "Cost so far", type: "line", showSymbol: false, color: PALETTE[0], data: actual },
+      {
+        name: "Cost so far",
+        type: "line",
+        showSymbol: false,
+        lineStyle: { width: 1.5 },
+        areaStyle: { color: areaGradient(PALETTE[0], 0.25, 0) },
+        color: PALETTE[0],
+        data: actual,
+      },
       {
         name: "Projected",
         type: "line",
         showSymbol: false,
         color: PALETTE[0],
-        lineStyle: { type: "dashed" },
+        lineStyle: { type: "dashed", width: 1.5 },
         data: projection,
       },
     ],

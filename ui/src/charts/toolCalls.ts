@@ -1,6 +1,6 @@
 import type { EChartsCoreOption } from "echarts/core";
 import type { SeriesRow } from "./stackedArea";
-import { PALETTE } from "./theme";
+import { BAR, LEGEND_GRID, LEGEND_TOP, PALETTE } from "./theme";
 
 /**
  * Top-N tool calls as a horizontal bar (spec §C): successful calls plus a red
@@ -15,8 +15,9 @@ export function toolCallsOption(calls: SeriesRow[], failures: SeriesRow[]): ECha
     )
     .reverse();
   return {
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: { bottom: 0 },
+    tooltip: { trigger: "axis", axisPointer: { type: "line" } },
+    legend: LEGEND_TOP,
+    grid: LEGEND_GRID,
     xAxis: { type: "value", minInterval: 1 },
     yAxis: { type: "category", data: items.map((i) => i.tool) },
     series: [
@@ -24,10 +25,19 @@ export function toolCallsOption(calls: SeriesRow[], failures: SeriesRow[]): ECha
         name: "Succeeded",
         type: "bar",
         stack: "calls",
+        ...BAR,
         color: PALETTE[0],
         data: items.map((i) => Math.max(0, i.calls - i.failed)),
       },
-      { name: "Failed", type: "bar", stack: "calls", color: "#ef4444", data: items.map((i) => i.failed) },
+      {
+        name: "Failed",
+        type: "bar",
+        stack: "calls",
+        ...BAR,
+        color: "#ef4444",
+        itemStyle: { borderRadius: [0, 3, 3, 0] },
+        data: items.map((i) => i.failed),
+      },
     ],
   };
 }
