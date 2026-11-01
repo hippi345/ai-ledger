@@ -3,6 +3,7 @@
 pub mod commands;
 pub mod error;
 pub mod ipc;
+pub mod live;
 pub mod state;
 
 use tauri::Manager;
