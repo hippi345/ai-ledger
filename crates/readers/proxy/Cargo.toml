@@ -1,0 +1,16 @@
+[package]
+name = "reader-proxy"
+description = "AI Ledger Tier 3 opt-in localhost logging proxy (usage metadata only)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ledger-core = { path = "../../ledger-core" }
+serde_json = "1"
+
+[lints]
+workspace = true
