@@ -72,3 +72,16 @@ test("the Models page shows the model usage table", async () => {
     await screen.findByRole("table", { name: "Model usage" }),
   ).toHaveTextContent("gpt-5");
 });
+
+test("the Projects page shows the project usage table", async () => {
+  const { invoke } = await import("@tauri-apps/api/core");
+  vi.mocked(invoke).mockImplementation(async (cmd: string) =>
+    cmd === "aggregate"
+      ? { rows: [{ keys: ["ai-ledger"], value: 5 }], total: 5 }
+      : [],
+  );
+  render(<App history={at("/projects")} />);
+  expect(
+    await screen.findByRole("table", { name: "Project usage" }),
+  ).toHaveTextContent("ai-ledger");
+});
