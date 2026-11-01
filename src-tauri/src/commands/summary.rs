@@ -81,7 +81,7 @@ pub fn cards_for(state: &AppState, today: NaiveDate) -> IpcResult<Vec<SummaryCar
         let tokens = total(&conn, &s, &u, Metric::Tokens)?;
         let (ps, pu) = ledger_core::delta::previous_range(&s, &u)?;
         let prev = total(&conn, &ps, &pu, Metric::Tokens)?;
-        let app = top(&conn, &s, &u, Dim::App)?;
+        let app = top(&conn, &s, &u, Dim::App)?.map(|a| ledger_core::summary::app_label(&a));
         let model = top(&conn, &s, &u, Dim::Model)?;
         let top: Vec<&str> = [app.as_deref(), model.as_deref()]
             .into_iter()
