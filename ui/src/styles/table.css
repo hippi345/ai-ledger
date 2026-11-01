@@ -1,0 +1,131 @@
+/* Tables (redesign §4.7). */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    font: var(--text-sm) var(--font-sans);
+}
+
+caption {
+    caption-side: top;
+    padding: 0 0 var(--space-2);
+    text-align: left;
+    font: 500 12px/16px var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+}
+
+th {
+    height: 36px;
+    padding: 0 12px;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font: 500 12px/16px var(--font-sans);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+td {
+    height: 40px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+}
+
+tbody tr:last-child > td {
+    border-bottom: 0;
+}
+
+tbody tr {
+    transition: background-color var(--dur) var(--ease);
+}
+
+tbody tr:hover {
+    background: var(--surface-hover);
+}
+
+td.num,
+th.num {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-feature-settings: "tnum";
+}
+
+/* Sortable headers: the header button looks like header text plus a chevron. */
+th > button {
+    height: 100%;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+
+th > button:hover:not(:disabled) {
+    background: transparent;
+    color: var(--text);
+}
+
+th[aria-sort] > button::after {
+    content: "";
+    width: 12px;
+    height: 12px;
+    flex: none;
+    opacity: 0.6;
+    background: no-repeat center / 12px
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5M7 9l5-5 5 5'/%3E%3C/svg%3E");
+}
+
+th[aria-sort="descending"],
+th[aria-sort="ascending"] {
+    color: var(--text);
+}
+
+th[aria-sort="descending"] > button::after {
+    opacity: 1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+th[aria-sort="ascending"] > button::after {
+    opacity: 1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m18 15-6-6-6 6'/%3E%3C/svg%3E");
+}
+
+/* Buttons inside cells (open session) read as links. */
+td > button {
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+}
+
+td > button:hover:not(:disabled) {
+    background: transparent;
+    color: var(--accent-hover);
+}
+
+/* Estimated price marker */
+.est {
+    display: inline-block;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: rgba(245, 166, 35, 0.12);
+    color: var(--warning);
+    font-size: 11px;
+}
+
+th.num > button {
+    justify-content: flex-end;
+}

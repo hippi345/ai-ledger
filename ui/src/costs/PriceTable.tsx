@@ -17,7 +17,7 @@ const usd = (v: unknown) =>
 /** Estimated values get a marker and an explanation (spec: estimates are always labelled). */
 function Est({ on, children }: { on: boolean; children: React.ReactNode }) {
   return on ? (
-    <span title="Estimated: not read from a vendor price page">
+    <span className="est" title="Estimated: not read from a vendor price page">
       {children}*
     </span>
   ) : (
@@ -54,7 +54,7 @@ export function PriceTable({ rows }: { rows: PriceRow_Serialize[] }) {
                 </Est>
               </td>
               {COLS.map(([l, k, est]) => (
-                <td key={l} style={{ textAlign: "right" }}>
+                <td key={l} className="num">
                   <Est on={r.estimated.includes(est)}>{usd(r[k])}</Est>
                 </td>
               ))}
