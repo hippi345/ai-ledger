@@ -50,6 +50,6 @@ test("joins calls, failures and duration per tool and server; tool filter applie
   expect(bars.data).toContain("Built-in");
 
   const only = await loadTools(r, { tool: ["search"] });
-  expect(only.rows.map((x) => x[0])).toEqual(["search"]);
-  expect(only.totals.calls).toBe(2);
+  expect(invoke.mock.calls.at(-1)![1].query.tool).toEqual(["search"]);
+  expect(only.rows).toHaveLength(2); // the backend filters; the mock doesn't
 });

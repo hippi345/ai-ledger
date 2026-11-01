@@ -27,6 +27,7 @@ fn groups_by_server_with_top_n() {
         group_by: vec![ToolAggDim::McpServer],
         app: vec![],
         mcp_server: vec!["github".into(), "linear".into(), "slack".into()],
+        tool: vec![],
         metric: ToolAggMetric::Calls,
         top: Some(1),
     };
