@@ -21,6 +21,8 @@ import { SavedViews } from "./views/SavedViews";
 import { useSavedViews } from "./views/useSavedViews";
 import { VIEW_KEYS, viewSearch } from "./views/views";
 import { ExportPagePngButton } from "./export/ExportPagePngButton";
+import { LiveIndicator } from "./live/LiveIndicator";
+import { useLive } from "./live/useLive";
 import {
   parseRangeSearch,
   resolveRange,
@@ -96,6 +98,18 @@ function GlobalViews() {
   );
 }
 
+/** Live status and pause toggle; tiles refresh themselves on ingest. */
+function GlobalLive() {
+  const live = useLive();
+  return (
+    <LiveIndicator
+      paused={live.paused}
+      lastIngest={live.lastIngest}
+      onToggle={() => void live.toggle()}
+    />
+  );
+}
+
 function Shell() {
   return (
     <div className="shell">
@@ -118,6 +132,7 @@ function Shell() {
       </nav>
       <main>
         <header>
+          <GlobalLive />
           <GlobalRange />
           <GlobalFilters />
           <GlobalViews />
