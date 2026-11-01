@@ -489,6 +489,28 @@ mod tests {
         assert!((cost(&r, under) - (72_000.0 * 5.0 + 200_000.0 * 0.5) / 1e6).abs() < 1e-9);
     }
 
+    /// OpenAI Batch/Flex are half of Standard and Fast is 2x
+    /// (https://platform.openai.com/docs/pricing, read 2026-10-31).
+    #[test]
+    fn openai_service_tiers_are_bundled() {
+        let c = setup();
+        let at = "2026-10-31T00:00:00Z";
+        let r = rate_at(&c, "gpt-5.6-terra", at).unwrap().unwrap();
+        let t = Tokens {
+            input: 300_000,
+            output: 1_000_000,
+            ..Tokens::default()
+        };
+        let std = cost(&r, t);
+        assert!((cost_on_tier(&r, t, Some(ServiceTier::Fast)) - 2.0 * std).abs() < 1e-9);
+        assert!((cost_on_tier(&r, t, Some(ServiceTier::Batch)) - 0.5 * std).abs() < 1e-9);
+        assert!((cost_on_tier(&r, t, Some(ServiceTier::Flex)) - 0.5 * std).abs() < 1e-9);
+        let flat = rate_at(&c, "gpt-5.3-codex", at).unwrap().unwrap();
+        assert_eq!(flat.service_tiers, TierMultipliers::default());
+        let claude = rate_at(&c, "claude-sonnet-4-5", at).unwrap().unwrap();
+        assert_eq!(claude.service_tiers, TierMultipliers::default());
+    }
+
     #[test]
     fn one_hour_cache_writes_use_their_own_rate() {
         let c = setup();
