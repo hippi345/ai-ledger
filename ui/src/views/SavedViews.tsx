@@ -27,7 +27,7 @@ export function SavedViews({ views, onSave, onApply, onDelete }: Props) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <button type="submit" disabled={!name.trim()}>
+        <button type="submit" className="btn-primary" disabled={!name.trim()}>
           Save view
         </button>
       </form>

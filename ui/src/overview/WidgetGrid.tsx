@@ -42,11 +42,15 @@ export function WidgetGrid({ layout, onChange, render, onReset }: Props) {
             ))}
           </select>
         </label>
-        <button type="button" onClick={() => onChange(addWidget(layout, kind))}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => onChange(addWidget(layout, kind))}
+        >
           Add widget
         </button>
         {onReset && (
-          <button type="button" onClick={onReset}>
+          <button type="button" className="btn-ghost" onClick={onReset}>
             Reset layout
           </button>
         )}
