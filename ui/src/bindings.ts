@@ -37,6 +37,8 @@ export const commands = {
 	setLaunchAtLogin: (on: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
 	/**  Sums a metric over rollups, grouped and filtered (spec §8). */
 	aggregate: (query: AggQuery_Deserialize) => typedError<AggResult_Serialize, IpcError>(__TAURI_INVOKE("aggregate", { query })),
+	/**  Today / this week / this month summary sentences. */
+	summaryCards: () => typedError<SummaryCard[], IpcError>(__TAURI_INVOKE("summary_cards")),
 };
 
 /* Types */
@@ -186,6 +188,12 @@ export type SourceInfo_Serialize = {
 	/**  `unknown`, `healthy`, or `unhealthy`. */
 	health: string,
 	error: string | null,
+};
+
+/**  One summary card. */
+export type SummaryCard = {
+	label: string,
+	text: string,
 };
 
 /**  A model seen in events that has no price. */
