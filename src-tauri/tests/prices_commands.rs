@@ -61,3 +61,13 @@ fn unknown_models_list() {
         ("mystery", 1, 7)
     );
 }
+
+#[test]
+fn price_table_includes_bundled_and_overrides() {
+    let s = state();
+    core::set(&s, p(3.0)).unwrap();
+    let t = core::table(&s).unwrap();
+    assert!(t.iter().any(|r| r.source == "bundled"));
+    let mine = t.iter().find(|r| r.model == "my-model").unwrap();
+    assert_eq!((mine.source.as_str(), mine.input), ("user", 3.0));
+}

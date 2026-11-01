@@ -58,9 +58,46 @@ pub struct UnknownModelInfo {
     pub last_seen: String,
 }
 
+/// One effective price row, USD per million tokens.
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PriceRow {
+    pub model: String,
+    /// `YYYY-MM-DD` (UTC).
+    pub effective_from: String,
+    pub input: f64,
+    pub output: f64,
+    pub cache_read: f64,
+    pub cache_write: f64,
+    pub cache_write1h: Option<f64>,
+    pub cache_write12h: Option<f64>,
+    /// "bundled" or "user".
+    pub source: String,
+    /// Fields that are estimates in the shipped table.
+    pub estimated: Vec<String>,
+}
+
 /// Logic callable without a Tauri runtime.
 pub mod core {
     use super::*;
+
+    pub fn table(state: &AppState) -> IpcResult<Vec<PriceRow>> {
+        Ok(ledger_core::prices::table(&state.db())?
+            .into_iter()
+            .map(|r| PriceRow {
+                model: r.model,
+                effective_from: r.effective_from,
+                input: r.input,
+                output: r.output,
+                cache_read: r.cache_read,
+                cache_write: r.cache_write,
+                cache_write1h: r.cache_write_1h,
+                cache_write12h: r.cache_write_12h,
+                source: r.source,
+                estimated: r.estimated,
+            })
+            .collect())
+    }
 
     pub fn list(state: &AppState) -> IpcResult<Vec<PriceOverride>> {
         Ok(overrides::list(&state.db())?
@@ -125,4 +162,11 @@ pub fn remove_price_override(
 #[specta::specta]
 pub fn list_unknown_models(state: State<'_, AppState>) -> IpcResult<Vec<UnknownModelInfo>> {
     core::unknown(&state)
+}
+
+/// The effective price table: bundled prices and user overrides.
+#[tauri::command]
+#[specta::specta]
+pub fn list_prices(state: State<'_, AppState>) -> IpcResult<Vec<PriceRow>> {
+    core::table(&state)
 }
