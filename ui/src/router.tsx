@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   Link,
   Outlet,
@@ -19,6 +20,7 @@ import { useFilters } from "./filters/useFilters";
 import { SavedViews } from "./views/SavedViews";
 import { useSavedViews } from "./views/useSavedViews";
 import { VIEW_KEYS, viewSearch } from "./views/views";
+import { ExportPagePngButton } from "./export/ExportPagePngButton";
 import {
   parseRangeSearch,
   resolveRange,
@@ -133,9 +135,11 @@ function Page({
   title: string;
   children?: React.ReactNode;
 }) {
+  const ref = useRef<HTMLElement>(null);
   return (
-    <section aria-labelledby="page-h">
+    <section ref={ref} aria-labelledby="page-h">
       <h2 id="page-h">{title}</h2>
+      <ExportPagePngButton target={ref} name={title} />
       {children}
     </section>
   );
