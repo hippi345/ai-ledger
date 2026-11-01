@@ -12,4 +12,5 @@
 //! stream without `stream_options.include_usage`), no event is produced;
 //! token counts are never guessed.
 
+pub mod server;
 pub mod usage;

@@ -11,6 +11,8 @@ rust-version.workspace = true
 [dependencies]
 ledger-core = { path = "../../ledger-core" }
 serde_json = "1"
+# Outbound HTTPS to the two fixed upstreams only (see src/server.rs).
+ureq = { version = "2", default-features = false, features = ["tls"] }
 
 [lints]
 workspace = true
