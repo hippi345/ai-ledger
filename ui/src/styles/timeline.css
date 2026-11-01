@@ -1,0 +1,53 @@
+/* Session timeline (redesign §4.7). */
+section[aria-label^="Session "] > h3 {
+    margin: var(--space-3) 0 var(--space-1);
+}
+
+ol[aria-label="Timeline"] {
+    position: relative;
+    margin: var(--space-4) 0 0;
+    padding: 0 0 0 20px;
+    list-style: none;
+    border-left: 1px solid var(--border);
+}
+
+ol[aria-label="Timeline"] > li {
+    position: relative;
+    padding: 6px 0 6px 4px;
+    font-size: var(--text-sm);
+    color: var(--text);
+}
+
+ol[aria-label="Timeline"] > li::before {
+    content: "";
+    position: absolute;
+    left: -24.5px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-top: -4px;
+    border-radius: 50%;
+    background: var(--text-subtle);
+    box-shadow: 0 0 0 3px var(--bg);
+}
+
+ol[aria-label="Timeline"] > li.tool::before {
+    background: var(--accent);
+}
+
+ol[aria-label="Timeline"] > li.tool.failed::before {
+    background: var(--danger);
+}
+
+ol[aria-label="Timeline"] > li.tool.failed {
+    color: var(--danger);
+}
+
+ol[aria-label="Timeline"] time {
+    display: inline-block;
+    min-width: 64px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    font-feature-settings: "tnum";
+}
