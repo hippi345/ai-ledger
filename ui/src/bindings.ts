@@ -25,6 +25,12 @@ export const commands = {
 	addSource: (candidate: Candidate) => typedError<number, IpcError>(__TAURI_INVOKE("add_source", { candidate })),
 	/**  Enables or disables a source. */
 	setSourceEnabled: (id: number, enabled: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_source_enabled", { id, enabled })),
+	/**  Lists user price overrides. */
+	listPriceOverrides: () => typedError<PriceOverride[], IpcError>(__TAURI_INVOKE("list_price_overrides")),
+	/**  Adds or replaces an override and re-prices all events. */
+	setPriceOverride: (price: PriceOverride) => typedError<number, IpcError>(__TAURI_INVOKE("set_price_override", { price })),
+	/**  Removes an override and re-prices all events. */
+	removePriceOverride: (model: string, effectiveFrom: string) => typedError<number, IpcError>(__TAURI_INVOKE("remove_price_override", { model, effectiveFrom })),
 };
 
 /* Types */
@@ -47,6 +53,17 @@ export type Candidate = {
 export type IpcError = {
 	code: string,
 	message: string,
+};
+
+/**  A user price override, USD per million tokens. */
+export type PriceOverride = {
+	model: string,
+	/**  `YYYY-MM-DD` (UTC). */
+	effectiveFrom: string,
+	input: number | null,
+	output: number | null,
+	cacheRead: number | null,
+	cacheWrite: number | null,
 };
 
 /**  One stored setting. */
