@@ -17,6 +17,7 @@ pub mod reader;
 pub mod retention;
 pub mod settings;
 pub mod sources;
+pub mod stats;
 pub mod sync;
 pub mod unknown_models;
 
