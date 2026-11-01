@@ -1,0 +1,253 @@
+/* Buttons, inputs, selects, the date range and filter chips (redesign §4.4, §4.8). */
+button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font: 500 var(--text-sm) var(--font-sans);
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        color var(--dur) var(--ease);
+}
+
+button:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: #404040;
+}
+
+button[aria-pressed="true"] {
+    background: var(--surface-active);
+}
+
+button:disabled {
+    color: var(--text-disabled);
+    cursor: not-allowed;
+}
+
+button.btn-primary {
+    border-color: transparent;
+    background: #ededed;
+    color: #0a0a0a;
+}
+
+button.btn-primary:hover:not(:disabled) {
+    border-color: transparent;
+    background: #ffffff;
+}
+
+button.btn-primary:disabled {
+    background: var(--surface-active);
+    color: var(--text-disabled);
+}
+
+button.btn-ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-muted);
+}
+
+button.btn-ghost:hover:not(:disabled) {
+    border-color: transparent;
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+button.btn-danger {
+    border-color: transparent;
+    background: transparent;
+    color: var(--danger);
+}
+
+button.btn-danger:hover:not(:disabled) {
+    border-color: transparent;
+    background: var(--danger-muted);
+}
+
+button.btn-sm {
+    height: 28px;
+    padding: 0 10px;
+}
+
+button.btn-icon {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+}
+
+/* Text inputs and selects */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    font: var(--text-sm) var(--font-sans);
+    color-scheme: dark;
+    transition: border-color var(--dur) var(--ease);
+}
+
+textarea {
+    height: auto;
+    padding: 8px 10px;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-subtle);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):hover,
+select:hover {
+    border-color: var(--border-focus);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    border-color: var(--border-focus);
+}
+
+input[type="number"],
+input[inputmode="numeric"],
+input[inputmode="decimal"] {
+    font-feature-settings: "tnum";
+    text-align: right;
+}
+
+select {
+    appearance: none;
+    padding-right: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1a1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    cursor: pointer;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+    vertical-align: -3px;
+}
+
+label {
+    color: var(--text-muted);
+    font: 500 var(--text-sm) var(--font-sans);
+}
+
+/* Date range: compact inline group of labelled controls. */
+fieldset[aria-label="Date range"] {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+fieldset[aria-label="Date range"] label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-subtle);
+}
+
+fieldset[aria-label="Date range"] select,
+fieldset[aria-label="Date range"] input {
+    height: 28px;
+    background-color: var(--bg-subtle);
+    border-color: var(--border);
+}
+
+/* Filter chips */
+[role="toolbar"][aria-label="Filters"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+[role="toolbar"][aria-label="Filters"] > button {
+    height: 24px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--accent-muted);
+    color: var(--accent-hover);
+    font: 500 var(--text-xs) var(--font-sans);
+}
+
+[role="toolbar"][aria-label="Filters"] > button:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.25);
+}
+
+/* The last button is "Clear filters": a quiet text button. */
+[role="toolbar"][aria-label="Filters"] > button:last-child {
+    background: transparent;
+    color: var(--text-subtle);
+}
+
+[role="toolbar"][aria-label="Filters"] > button:last-child:hover {
+    background: transparent;
+    color: var(--text);
+}
+
+/* Saved views (inline layout, styled) */
+[role="group"][aria-label="Saved views"] {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+[role="group"][aria-label="Saved views"] form {
+    display: flex;
+    gap: 6px;
+}
+
+[role="group"][aria-label="Saved views"] input {
+    width: 160px;
+    height: 28px;
+}
+
+[role="group"][aria-label="Saved views"] button {
+    height: 28px;
+    padding: 0 10px;
+}
+
+[role="group"][aria-label="Saved views"] ul {
+    display: flex;
+    gap: 4px;
+}
+
+[role="group"][aria-label="Saved views"] li {
+    display: inline-flex;
+}
+
+[role="group"][aria-label="Saved views"] li > button:first-child {
+    border-right: 0;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+[role="group"][aria-label="Saved views"] li > button:last-child {
+    width: 24px;
+    padding: 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--text-subtle);
+}
+
+[role="group"][aria-label="Saved views"] li > button:last-child:hover {
+    color: var(--danger);
+    background: var(--danger-muted);
+}
