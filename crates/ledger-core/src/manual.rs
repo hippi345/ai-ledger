@@ -81,7 +81,10 @@ pub fn save(conn: &mut Connection, e: &ManualEntry) -> Result<IngestStats> {
         raw_hash: hash(&e.entry_id),
         ..Default::default()
     };
-    upsert_events(conn, src, &[ev])
+    let ev = [ev];
+    let stats = upsert_events(conn, src, &ev)?;
+    crate::rollup::refresh_for(conn, &ev)?;
+    Ok(stats)
 }
 
 /// Deletes a manual entry. Returns whether it existed. Never touches reader data.

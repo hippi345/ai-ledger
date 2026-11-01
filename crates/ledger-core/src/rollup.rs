@@ -85,6 +85,31 @@ pub fn rebuild_all(conn: &mut Connection) -> Result<()> {
     }
 }
 
+/// Builds rollups once for a ledger that has events but no rollups yet
+/// (databases created before rollups existed).
+pub fn ensure_built(conn: &mut Connection) -> Result<()> {
+    let (events, rolled): (bool, bool) = conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM events), EXISTS (SELECT 1 FROM rollups_day)",
+        [],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    if events && !rolled {
+        tracing::info!("building rollups for existing events");
+        rebuild_all(conn)?;
+    }
+    Ok(())
+}
+
+/// Refreshes the buckets covering `events` (no-op when empty).
+pub fn refresh_for(conn: &mut Connection, events: &[crate::ingest::NewEvent]) -> Result<()> {
+    let lo = events.iter().map(|e| e.ts_utc.as_str()).min();
+    let hi = events.iter().map(|e| e.ts_utc.as_str()).max();
+    match (lo, hi) {
+        (Some(lo), Some(hi)) => refresh(conn, lo, hi),
+        _ => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -185,6 +210,14 @@ mod tests {
         assert_eq!(day[1], ("2026-10-05".to_owned(), "a".to_owned(), 1, 5));
         // The month bucket spans both days and is recomputed from events.
         assert_eq!(rows(&c, Grain::Month)[0].3, 6);
+    }
+
+    #[test]
+    fn ensure_built_fills_empty_rollups_once() {
+        let mut c = setup(&[ev("2026-10-01T10:00:00Z", "a", 1, "1")]);
+        assert!(rows(&c, Grain::Day).is_empty());
+        ensure_built(&mut c).unwrap();
+        assert_eq!(rows(&c, Grain::Day).len(), 1);
     }
 
     #[test]

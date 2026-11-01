@@ -42,6 +42,7 @@ pub fn open_file(path: &Path) -> Result<Connection> {
     }
     configure(&conn)?;
     migrations::run(&mut conn)?;
+    crate::rollup::ensure_built(&mut conn)?;
     Ok(conn)
 }
 

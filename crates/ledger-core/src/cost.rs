@@ -322,6 +322,7 @@ pub fn recompute_all(conn: &mut Connection) -> Result<usize> {
         price_event(&tx, *id)?;
     }
     tx.commit()?;
+    crate::rollup::rebuild_all(conn)?;
     tracing::info!(events = ids.len(), "recomputed costs");
     Ok(ids.len())
 }
