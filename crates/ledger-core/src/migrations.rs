@@ -58,6 +58,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "tier_multipliers",
         sql: include_str!("../migrations/0008_tier_multipliers.sql"),
     },
+    Migration {
+        version: 9,
+        name: "rollups",
+        sql: include_str!("../migrations/0009_rollups.sql"),
+    },
 ];
 
 /// Highest version known to this build (0 when there are none).

@@ -15,6 +15,7 @@ pub mod overrides;
 pub mod prices;
 pub mod reader;
 pub mod retention;
+pub mod rollup;
 pub mod settings;
 pub mod sources;
 pub mod stats;
