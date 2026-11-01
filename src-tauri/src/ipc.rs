@@ -86,6 +86,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::autostart::set_launch_at_login,
             crate::commands::aggregate::aggregate,
             crate::commands::summary::summary_cards,
+            crate::commands::tools::aggregate_tools,
         ])
 }
 
