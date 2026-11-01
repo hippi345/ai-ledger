@@ -5,6 +5,7 @@ pub mod error;
 pub mod ipc;
 pub mod live;
 pub mod state;
+pub mod tray;
 pub mod watcher;
 
 use tauri::{Emitter, Manager};
