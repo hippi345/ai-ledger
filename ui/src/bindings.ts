@@ -35,9 +35,87 @@ export const commands = {
 	listUnknownModels: () => typedError<UnknownModelInfo[], IpcError>(__TAURI_INVOKE("list_unknown_models")),
 	/**  Turns launch at login on or off and saves the choice. */
 	setLaunchAtLogin: (on: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
+	/**  Sums a metric over rollups, grouped and filtered (spec §8). */
+	aggregate: (query: AggQuery_Deserialize) => typedError<AggResult_Serialize, IpcError>(__TAURI_INVOKE("aggregate", { query })),
 };
 
 /* Types */
+export type AggDim = "bucket" | "app" | "model" | "project";
+
+export type AggFilters = AggFilters_Serialize | AggFilters_Deserialize;
+
+export type AggFilters_Deserialize = {
+	app?: string[],
+	model?: string[],
+	project?: string[],
+};
+
+export type AggFilters_Serialize = {
+	app: string[],
+	model: string[],
+	project: string[],
+};
+
+export type AggGrain = "day" | "week" | "month";
+
+export type AggMetric = "tokens" | "cost_usd" | "requests" | "events";
+
+/**  An aggregate request. Dates are UTC `YYYY-MM-DD`, `since <= bucket < until`. */
+export type AggQuery = AggQuery_Serialize | AggQuery_Deserialize;
+
+/**  An aggregate request. Dates are UTC `YYYY-MM-DD`, `since <= bucket < until`. */
+export type AggQuery_Deserialize = {
+	since: string,
+	until: string,
+	grain: AggGrain,
+	groupBy: AggDim[],
+	filters: AggFilters_Deserialize,
+	metric: AggMetric,
+	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
+	top?: number | null,
+	/**  Also total the previous equal-length period. */
+	compare: boolean,
+};
+
+/**  An aggregate request. Dates are UTC `YYYY-MM-DD`, `since <= bucket < until`. */
+export type AggQuery_Serialize = {
+	since: string,
+	until: string,
+	grain: AggGrain,
+	groupBy: AggDim[],
+	filters: AggFilters_Serialize,
+	metric: AggMetric,
+	/**  Keep the N largest groups and fold the rest into "Other" (0 or null = all). */
+	top: number | null,
+	/**  Also total the previous equal-length period. */
+	compare: boolean,
+};
+
+export type AggResult = AggResult_Serialize | AggResult_Deserialize;
+
+export type AggResult_Deserialize = {
+	rows: AggRow[],
+	total: number | null,
+	/**  Total for the previous period, when `compare` was set. */
+	previousTotal?: number | null,
+	/**  Percent change against it; null when it was zero or not requested. */
+	changePct?: number | null,
+};
+
+export type AggResult_Serialize = {
+	rows: AggRow[],
+	total: number | null,
+	/**  Total for the previous period, when `compare` was set. */
+	previousTotal: number | null,
+	/**  Percent change against it; null when it was zero or not requested. */
+	changePct: number | null,
+};
+
+export type AggRow = {
+	keys: string[],
+	value: number | null,
+};
+
 /**  Basic facts about the running app, shown in the About box. */
 export type AppInfo = {
 	appVersion: string,
