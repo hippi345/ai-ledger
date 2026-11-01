@@ -24,5 +24,5 @@ test("donut uses the same order and colors", () => {
   const d = o.series[0].data;
   expect(d.map((x) => x.name)).toEqual(["claude", "gpt-5", "Unknown", "Other"]);
   expect(d[0].itemStyle.color).toBe(PALETTE[0]);
-  expect(d[3].itemStyle.color).toBe("#94a3b8");
+  expect(d[3].itemStyle.color).toBe("#404040");
 });

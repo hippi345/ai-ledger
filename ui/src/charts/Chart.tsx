@@ -9,10 +9,12 @@ import {
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsCoreOption } from "echarts/core";
-import { baseOption } from "./theme";
+import { baseOption, LEDGER_THEME } from "./theme";
 import { utcToday } from "../filters/range";
 import { savePng } from "../export/download";
 import { pngFileName } from "../export/png";
+
+echarts.registerTheme("ledger", LEDGER_THEME);
 
 echarts.use([
   BarChart,
@@ -49,7 +51,7 @@ export function Chart({
 
   useEffect(() => {
     if (!el.current) return;
-    const c = echarts.init(el.current);
+    const c = echarts.init(el.current, "ledger");
     chart.current = c;
     const ro =
       typeof ResizeObserver === "undefined"
