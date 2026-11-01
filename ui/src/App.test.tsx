@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue([]) }));
+vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }));
 
 import { App } from "./App";
 
