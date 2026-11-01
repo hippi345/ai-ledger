@@ -81,3 +81,21 @@ fn disabled_and_unknown_sources_are_skipped() {
     assert!(live::sync_one(&s, id).unwrap().is_none());
     assert!(live::sync_one(&s, 999).unwrap().is_none());
 }
+
+#[test]
+fn poll_fallback_repeats_until_the_receiver_is_dropped() {
+    let (tx, rx) = mpsc::channel();
+    let h = live::spawn_poll(vec![7, 8], tx, Duration::from_millis(5)).unwrap();
+    let got: Vec<i64> = (0..4)
+        .map(|_| rx.recv_timeout(Duration::from_secs(5)).unwrap())
+        .collect();
+    assert_eq!(got, vec![7, 8, 7, 8]);
+    drop(rx);
+    h.join().unwrap();
+}
+
+#[test]
+fn poll_fallback_is_not_started_without_ids() {
+    let (tx, _rx) = mpsc::channel();
+    assert!(live::spawn_poll(vec![], tx, Duration::from_millis(5)).is_none());
+}
