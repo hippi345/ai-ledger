@@ -56,5 +56,5 @@ export function useSources() {
       if ((await run(commands.setSourceEnabled(id, enabled))) !== undefined) await refresh();
     })();
 
-  return { sources, candidates, busy, error, detect, add, toggle };
+  return { sources, candidates, busy, error, detect, add, toggle, refresh };
 }

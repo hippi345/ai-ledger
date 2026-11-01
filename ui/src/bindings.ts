@@ -22,6 +22,12 @@ export const commands = {
 	/**  Looks for AI apps' data on this machine. */
 	detectSources: () => typedError<Candidate[], IpcError>(__TAURI_INVOKE("detect_sources")),
 	/**  Adds a detected (or user-built) source. Returns its id. */
+	/**  Lists a CSV/JSON export's columns and suggests a mapping. */
+	inspectImport: (path: string) => typedError<ImportInspection, IpcError>(__TAURI_INVOKE("inspect_import", { path })),
+	/**  Shows what an import would add, without storing anything. */
+	previewImport: (spec: ImportSpec) => typedError<ImportPreview, IpcError>(__TAURI_INVOKE("preview_import", { spec })),
+	/**  Adds a CSV/JSON import source with the chosen mapping and reads it. */
+	addImport: (spec: ImportSpec) => typedError<number, IpcError>(__TAURI_INVOKE("add_import", { spec })),
 	addSource: (candidate: Candidate) => typedError<number, IpcError>(__TAURI_INVOKE("add_source", { candidate })),
 	/**  Enables or disables a source. */
 	setSourceEnabled: (id: number, enabled: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_source_enabled", { id, enabled })),
@@ -276,6 +282,11 @@ export type SessionRow_Serialize = {
 };
 
 /**  One stored setting. */
+export type ImportMapping = { ts: string; app: string | null; model: string | null; project: string | null; inputTokens: string | null; outputTokens: string | null; cacheReadTokens: string | null; cacheWriteTokens: string | null; requests: string | null; serviceTier: string | null };
+export type ImportInspection = { format: string; columns: string[]; sample: string[][]; rows: number; suggested: ImportMapping };
+export type ImportSpec = { path: string; format: string; mapping: ImportMapping; defaultApp: string };
+export type ImportPreview = { events: number; skipped: number; firstTs: string | null; lastTs: string | null; inputTokens: number; outputTokens: number };
+
 export type SettingEntry = {
 	key: string,
 	value: Value,

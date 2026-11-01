@@ -1,5 +1,6 @@
 pub mod aggregate;
 pub mod heatmap;
+pub mod import;
 pub mod prices;
 pub mod privacy;
 pub mod sessions;

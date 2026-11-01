@@ -1,3 +1,4 @@
+import { ImportPanel } from "./ImportPanel";
 import { SourcesPanel } from "./SourcesPanel";
 import { useSources } from "./useSources";
 
@@ -15,6 +16,7 @@ export function SourcesSettings() {
         onAdd={(c) => void s.add(c)}
         onToggle={(id, on) => void s.toggle(id, on)}
       />
+      <ImportPanel onAdded={() => void s.refresh()} />
     </>
   );
 }
