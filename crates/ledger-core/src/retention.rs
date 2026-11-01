@@ -2,8 +2,9 @@
 //!
 //! Controlled by [`settings::keys::RETENTION_DAYS`] (0 = keep forever, the
 //! default). Pruning deletes raw events (and, via cascade, their tool calls)
-//! older than the cutoff. Aggregated rollups are never pruned here, so
-//! historical totals survive once rollups exist.
+//! older than the cutoff. Rollups are never pruned: the cutoff is saved as
+//! `retention.pruned_before`, and rollup buckets starting before it are
+//! frozen so later refreshes cannot rebuild them from fewer events.
 
 use rusqlite::Connection;
 
@@ -31,6 +32,11 @@ pub fn prune_older_than(conn: &Connection, now_utc: &str, days: u32) -> Result<P
         |r| r.get(0),
     )?;
     let events_deleted = conn.execute("DELETE FROM events WHERE ts_utc < ?1", [&cutoff])?;
+    // Freeze rollup buckets that may now cover pruned events (watermark only moves forward).
+    let prev = settings::get_or(conn, settings::keys::PRUNED_BEFORE, String::new())?;
+    if cutoff > prev {
+        settings::set(conn, settings::keys::PRUNED_BEFORE, &cutoff)?;
+    }
     tracing::info!(%cutoff, events_deleted, "retention prune");
     Ok(PruneReport {
         cutoff: Some(cutoff),
