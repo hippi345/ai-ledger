@@ -53,6 +53,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "service_tiers",
         sql: include_str!("../migrations/0007_service_tiers.sql"),
     },
+    Migration {
+        version: 8,
+        name: "tier_multipliers",
+        sql: include_str!("../migrations/0008_tier_multipliers.sql"),
+    },
 ];
 
 /// Highest version known to this build (0 when there are none).
