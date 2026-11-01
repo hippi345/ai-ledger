@@ -35,9 +35,17 @@ impl Grain {
     }
 }
 
+/// The retention watermark: buckets starting before it are frozen, because
+/// some of their raw events may have been pruned. `""` when nothing was pruned.
+fn frozen_before(conn: &Connection) -> Result<String> {
+    crate::settings::get_or(conn, crate::settings::keys::PRUNED_BEFORE, String::new())
+}
+
 /// Recomputes every bucket that overlaps `[since_utc, until_utc]` (inclusive
-/// RFC 3339 timestamps), at all grains, in one transaction.
+/// RFC 3339 timestamps), at all grains, in one transaction. Buckets frozen by
+/// retention are left as they are.
 pub fn refresh(conn: &mut Connection, since_utc: &str, until_utc: &str) -> Result<()> {
+    let frozen = frozen_before(conn)?;
     let tx = conn.transaction()?;
     for g in Grain::ALL {
         let t = g.table();
@@ -45,8 +53,8 @@ pub fn refresh(conn: &mut Connection, since_utc: &str, until_utc: &str) -> Resul
         let hi = g.bucket_sql("?2");
         let b = g.bucket_sql("ts_utc");
         tx.execute(
-            &format!("DELETE FROM {t} WHERE bucket BETWEEN {lo} AND {hi}"),
-            [since_utc, until_utc],
+            &format!("DELETE FROM {t} WHERE bucket BETWEEN {lo} AND {hi} AND bucket >= ?3"),
+            [since_utc, until_utc, &frozen],
         )?;
         tx.execute(
             &format!(
@@ -56,18 +64,20 @@ pub fn refresh(conn: &mut Connection, since_utc: &str, until_utc: &str) -> Resul
                     SUM(requests), SUM(input_tokens), SUM(output_tokens), SUM(cache_read_tokens),
                     SUM(cache_write_tokens + cache_write_1h_tokens + cache_write_12h_tokens),
                     COALESCE(SUM(cost_usd_est), 0.0), SUM(estimated)
-                 FROM events WHERE {b} BETWEEN {lo} AND {hi}
+                 FROM events WHERE {b} BETWEEN {lo} AND {hi} AND {b} >= ?3
                  GROUP BY 1, 2, 3, 4"
             ),
-            [since_utc, until_utc],
+            [since_utc, until_utc, &frozen],
         )?;
     }
     tx.commit()?;
     Ok(())
 }
 
-/// Rebuilds all rollups from scratch (after re-pricing or a migration).
+/// Rebuilds all rollups from events (after re-pricing or a migration),
+/// except buckets frozen by retention, which raw events can no longer rebuild.
 pub fn rebuild_all(conn: &mut Connection) -> Result<()> {
+    let frozen = frozen_before(conn)?;
     let span: (Option<String>, Option<String>) =
         conn.query_row("SELECT MIN(ts_utc), MAX(ts_utc) FROM events", [], |r| {
             Ok((r.get(0)?, r.get(1)?))
@@ -75,7 +85,10 @@ pub fn rebuild_all(conn: &mut Connection) -> Result<()> {
     {
         let tx = conn.transaction()?;
         for g in Grain::ALL {
-            tx.execute(&format!("DELETE FROM {}", g.table()), [])?;
+            tx.execute(
+                &format!("DELETE FROM {} WHERE bucket >= ?1", g.table()),
+                [&frozen],
+            )?;
         }
         tx.commit()?;
     }
@@ -218,6 +231,31 @@ mod tests {
         assert!(rows(&c, Grain::Day).is_empty());
         ensure_built(&mut c).unwrap();
         assert_eq!(rows(&c, Grain::Day).len(), 1);
+    }
+
+    #[test]
+    fn pruned_buckets_stay_frozen() {
+        let mut c = setup(&[
+            ev("2026-10-01T10:00:00Z", "a", 1, "1"),
+            ev("2026-10-20T10:00:00Z", "a", 2, "2"),
+        ]);
+        rebuild_all(&mut c).unwrap();
+        // Prune everything before Oct 10: the October month bucket now has
+        // fewer raw events than it summarizes.
+        crate::retention::prune_older_than(&c, "2026-10-30T00:00:00Z", 20).unwrap();
+        let s = sources::list(&c).unwrap()[0].id;
+        let late = [ev("2026-10-25T10:00:00Z", "a", 4, "3")];
+        upsert_events(&mut c, s, &late).unwrap();
+        refresh_for(&mut c, &late).unwrap();
+        rebuild_all(&mut c).unwrap();
+        let month = rows(&c, Grain::Month);
+        assert_eq!(month[0].3, 1 + 2, "frozen month keeps pruned totals");
+        let day = rows(&c, Grain::Day);
+        assert_eq!(
+            day.iter().map(|r| r.3).sum::<i64>(),
+            1 + 2 + 4,
+            "pruned day kept, new day added"
+        );
     }
 
     #[test]
