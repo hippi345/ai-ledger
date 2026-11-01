@@ -1,0 +1,174 @@
+/* Cards, stat tiles, page title row, summary cards, budget (redesign §4.3, §4.5, §4.9). */
+
+/* Page title row: title left, page actions (PNG export) right. */
+.shell > main > section[aria-labelledby="page-h"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.shell > main > section[aria-labelledby="page-h"] > h2 {
+    font: 600 var(--text-lg) var(--font-sans);
+    letter-spacing: -0.02em;
+    margin-bottom: calc(-1 * var(--space-6) + 0px);
+    padding-right: 180px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.shell > main > section[aria-labelledby="page-h"] {
+    position: relative;
+}
+
+.shell > main > section[aria-labelledby="page-h"] > h2 + button {
+    position: absolute;
+    top: var(--space-6);
+    right: var(--space-8);
+}
+
+/* Generic card look */
+.card,
+.shell > main > section[aria-labelledby="page-h"] > section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.shell > main > section[aria-labelledby="page-h"] > section > h3 {
+    font: 500 var(--text-md) var(--font-sans);
+    letter-spacing: -0.01em;
+}
+
+/* Stat tiles: each dt/dd pair is one tile. */
+dl.kpis {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(160px, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: var(--space-4);
+}
+
+dl.kpis > dt {
+    padding: var(--space-5) var(--space-5) var(--space-1);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    font: 500 12px/16px var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+}
+
+dl.kpis > dd {
+    margin: 0;
+    padding: 0 var(--space-5) var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 0;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    font: 600 var(--text-kpi) var(--font-sans);
+    letter-spacing: -0.03em;
+    font-feature-settings: "tnum";
+    color: var(--text);
+}
+
+/* Inside a card, tiles sit flush on the card surface. */
+section > dl.kpis > dt,
+section > dl.kpis > dd {
+    background: var(--bg-subtle);
+}
+
+/* Summary cards */
+section[aria-label="Summary"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+}
+
+section[aria-label="Summary"] > article {
+    padding: var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+section[aria-label="Summary"] > article > h3 {
+    margin-bottom: var(--space-2);
+    font: 500 12px/16px var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+}
+
+section[aria-label="Summary"] > article > p {
+    font: 14px/1.6 var(--font-sans);
+    color: var(--text);
+}
+
+/* Budget status line with a level bar */
+p.budget {
+    position: relative;
+    padding-top: 14px;
+    font: var(--text-sm) var(--font-sans);
+    color: var(--text-muted);
+}
+
+p.budget::before,
+p.budget::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 6px;
+    border-radius: var(--radius-full);
+}
+
+p.budget::before {
+    right: 0;
+    background: var(--border);
+}
+
+/* Level strip (no percentage in the markup, so the bar shows level only). */
+p.budget::after {
+    right: 0;
+    background: var(--accent);
+}
+
+p.budget.near::after,
+p.budget.projected-over::after {
+    background: var(--warning);
+}
+
+p.budget.over::after {
+    background: var(--danger);
+}
+
+p.budget.over {
+    color: #fca5a5;
+}
+
+/* Inline forms inside cards (budget) */
+section[aria-labelledby="budget-h"] form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+section[aria-labelledby="budget-h"] form label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Buttons in a card column keep their natural width. */
+.shell > main > section[aria-labelledby="page-h"] > section > button,
+.shell > main > section[aria-labelledby="page-h"] > section > div > button {
+  align-self: flex-start;
+}

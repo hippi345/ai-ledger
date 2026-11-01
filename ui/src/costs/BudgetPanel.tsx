@@ -59,11 +59,15 @@ export function BudgetPanel({ budget, spent, projected, onSave }: Props) {
             onChange={(e) => setDraft(e.target.value)}
           />
         </label>
-        <button type="submit" disabled={!valid}>
+        <button type="submit" className="btn-primary" disabled={!valid}>
           Save budget
         </button>
         {budget != null && (
-          <button type="button" onClick={() => onSave(null)}>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => onSave(null)}
+          >
             Remove budget
           </button>
         )}
