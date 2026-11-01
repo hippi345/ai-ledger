@@ -1,7 +1,14 @@
-import { parseFilterSearch, type FilterSearch } from "../filters/filters";
+import {
+  FILTER_DIMS,
+  parseFilterSearch,
+  type FilterSearch,
+} from "../filters/filters";
 import { parseRangeSearch, type RangeSearch } from "../filters/range";
 
 export const VIEWS_KEY = "ui.saved_views";
+
+/** Search keys a view owns; applying a view clears all of them first. */
+export const VIEW_KEYS = ["range", "from", "to", ...FILTER_DIMS] as const;
 
 export type ViewSearch = RangeSearch & FilterSearch;
 /** A named date range plus filters that can be reapplied in one click. */

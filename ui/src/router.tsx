@@ -16,6 +16,9 @@ import { DateRangePicker } from "./filters/DateRangePicker";
 import { FilterBar } from "./filters/FilterBar";
 import { parseFilterSearch, type FilterSearch } from "./filters/filters";
 import { useFilters } from "./filters/useFilters";
+import { SavedViews } from "./views/SavedViews";
+import { useSavedViews } from "./views/useSavedViews";
+import { VIEW_KEYS, viewSearch } from "./views/views";
 import {
   parseRangeSearch,
   resolveRange,
@@ -67,6 +70,30 @@ function GlobalFilters() {
   );
 }
 
+/** Saved views: capture the current range and filters, or reapply one. */
+function GlobalViews() {
+  const search = useSearch({ strict: false }) as Record<string, unknown>;
+  const navigate = useNavigate();
+  const v = useSavedViews();
+  return (
+    <SavedViews
+      views={v.views}
+      onSave={(name) => void v.save(name, viewSearch(search))}
+      onDelete={(name) => void v.remove(name)}
+      onApply={(view) =>
+        void navigate({
+          to: ".",
+          search: (prev: Record<string, unknown>) => {
+            const out: Record<string, unknown> = { ...prev };
+            for (const k of VIEW_KEYS) out[k] = undefined;
+            return { ...out, ...view.search };
+          },
+        })
+      }
+    />
+  );
+}
+
 function Shell() {
   return (
     <div className="shell">
@@ -91,6 +118,7 @@ function Shell() {
         <header>
           <GlobalRange />
           <GlobalFilters />
+          <GlobalViews />
         </header>
         <Outlet />
       </main>
