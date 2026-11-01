@@ -7,7 +7,7 @@ pub mod live;
 pub mod state;
 pub mod watcher;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 /// Builds and runs the desktop app.
 pub fn run() {
@@ -42,6 +42,10 @@ pub fn run() {
                                     updated = s.updated,
                                     "live sync"
                                 );
+                                let ev = ipc::IngestedEvent::new(id, s);
+                                if ev.changed() {
+                                    let _ = handle.emit(ipc::INGESTED_EVENT, ev);
+                                }
                             })
                         }
                         Err(e) => tracing::warn!(error = %e, "live updates unavailable"),

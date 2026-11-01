@@ -34,12 +34,41 @@ pub fn app_info() -> AppInfo {
     }
 }
 
+/// Event emitted after new usage is stored (spec §7).
+pub const INGESTED_EVENT: &str = "ledger://ingested";
+
+/// Payload of [`INGESTED_EVENT`]: which source changed and how much.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct IngestedEvent {
+    pub source_id: i64,
+    pub inserted: u32,
+    pub updated: u32,
+}
+
+impl IngestedEvent {
+    pub fn new(source_id: i64, s: ledger_core::ingest::IngestStats) -> Self {
+        let n = |v: usize| u32::try_from(v).unwrap_or(u32::MAX);
+        Self {
+            source_id,
+            inserted: n(s.inserted),
+            updated: n(s.updated),
+        }
+    }
+
+    /// True when the UI has something new to show.
+    pub fn changed(&self) -> bool {
+        self.inserted > 0 || self.updated > 0
+    }
+}
+
 /// The command/event registry shared by the app and the bindings export.
 pub fn builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
         // IPC payloads are JSON, so 64-bit integers already arrive in JS as
         // `number`. Token counts and ids stay far below 2^53.
         .dangerously_cast_bigints_to_number()
+        .typ::<IngestedEvent>()
         .commands(collect_commands![
             app_info,
             crate::commands::settings::get_setting,
