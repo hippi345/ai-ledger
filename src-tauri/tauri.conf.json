@@ -10,7 +10,13 @@
   },
   "app": {
     "windows": [
-      { "title": "AI Ledger", "width": 1280, "height": 800, "minWidth": 900, "minHeight": 600 }
+      {
+        "title": "AI Ledger",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600
+      }
     ],
     "security": {
       "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost"
@@ -25,6 +31,25 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Joel Shearon",
+    "copyright": "Copyright (c) 2026 Joel Shearon",
+    "license": "MIT",
+    "category": "DeveloperTool",
+    "shortDescription": "Local ledger of AI coding tool usage and cost",
+    "longDescription": "AI Ledger reads usage logs from AI coding tools on this machine and shows tokens, cost and sessions. All data stays local.",
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": null
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256"
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      }
+    }
   }
 }
