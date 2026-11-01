@@ -1,6 +1,6 @@
 //! Live updates: debounced re-reads of changed sources (spec §7).
 
-use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
@@ -9,6 +9,7 @@ use ledger_core::ingest::IngestStats;
 use ledger_core::{sources, sync};
 
 use crate::state::AppState;
+use crate::watcher::{self, LiveWatch};
 
 /// Poll interval for sources that cannot be watched (spec §7).
 pub const POLL_EVERY: Duration = Duration::from_secs(5);
@@ -85,4 +86,21 @@ pub fn spawn_poll(ids: Vec<i64>, tx: Sender<i64>, every: Duration) -> Option<Joi
         })
         .map_err(|e| tracing::warn!(error = %e, "could not start poll fallback"))
         .ok()
+}
+
+/// Sets up live updates: starts the watcher, queues every enabled source once
+/// so changes made while the app was closed are caught up, and starts the
+/// poll fallback for sources that cannot be watched. Keep the returned
+/// [`LiveWatch`] alive while feeding the receiver to [`run`].
+pub fn prepare(state: &AppState) -> ledger_core::Result<(LiveWatch, Receiver<i64>)> {
+    let (tx, rx) = mpsc::channel();
+    let watch = watcher::watch(state, tx.clone())?;
+    for s in sources::list(&state.db())?
+        .into_iter()
+        .filter(|s| s.enabled)
+    {
+        let _ = tx.send(s.id);
+    }
+    spawn_poll(watch.unwatched.clone(), tx, POLL_EVERY);
+    Ok((watch, rx))
 }
