@@ -13,6 +13,10 @@ Bundle metadata (publisher, license, category, descriptions) is set in
 
 ## Builds
 
+macOS is not built in CI for now (neither PR checks nor releases). A local
+`tauri build` on a Mac still works.
+
+
 - **Every PR:** the `tauri build` CI job builds bundles on all three OSes
   and uploads them as workflow artifacts. They are kept for 7 days.
 - **Releases:** pushing a `v*` tag runs `.github/workflows/release.yml`. It

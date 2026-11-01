@@ -73,5 +73,5 @@ fn unknown_reader_is_rejected() {
 fn default_registry_has_builtin_readers() {
     let r = ai_ledger_lib::state::default_registry();
     let ids: Vec<_> = r.ids().collect();
-    assert_eq!(ids, ["claude_code", "csv_import", "cursor"]);
+    assert_eq!(ids, ["claude_code", "csv_import", "cursor", "proxy"]);
 }

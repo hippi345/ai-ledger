@@ -38,9 +38,9 @@ export const commands = {
 	/**  Turns launch at login on or off and saves the choice. */
 	setLaunchAtLogin: (on: boolean) => typedError<null, IpcError>(__TAURI_INVOKE("set_launch_at_login", { on })),
 	/**  Current proxy settings and whether it is listening. */
-	proxyStatus: () => typedError<ProxyStatus, IpcError>(__TAURI_INVOKE("proxy_status")),
+	proxyStatus: () => typedError<ProxyStatus_Serialize, IpcError>(__TAURI_INVOKE("proxy_status")),
 	/**  Turns the proxy on or off and sets its port, then applies it. */
-	setProxy: (enabled: boolean, port: number) => typedError<ProxyStatus, IpcError>(__TAURI_INVOKE("set_proxy", { enabled, port })),
+	setProxy: (enabled: boolean, port: number) => typedError<ProxyStatus_Serialize, IpcError>(__TAURI_INVOKE("set_proxy", { enabled, port })),
 	/**  Sums a metric over rollups, grouped and filtered (spec §8). */
 	aggregate: (query: AggQuery_Deserialize) => typedError<AggResult_Serialize, IpcError>(__TAURI_INVOKE("aggregate", { query })),
 	/**
@@ -221,6 +221,25 @@ export type PriceRow_Serialize = {
 	estimated: string[],
 };
 
+/**  What the Settings panel shows. */
+export type ProxyStatus = ProxyStatus_Serialize | ProxyStatus_Deserialize;
+
+/**  What the Settings panel shows. */
+export type ProxyStatus_Deserialize = {
+	enabled: boolean,
+	port: number,
+	running: boolean,
+	error?: string | null,
+};
+
+/**  What the Settings panel shows. */
+export type ProxyStatus_Serialize = {
+	enabled: boolean,
+	port: number,
+	running: boolean,
+	error: string | null,
+};
+
 /**  One session's usage within the queried range. */
 export type SessionRow = SessionRow_Serialize | SessionRow_Deserialize;
 
@@ -257,11 +276,6 @@ export type SessionRow_Serialize = {
 };
 
 /**  One stored setting. */
-/**
- *  What the Settings panel shows.
- */
-export type ProxyStatus = { enabled: boolean; port: number; running: boolean; error: string | null };
-
 export type SettingEntry = {
 	key: string,
 	value: Value,
