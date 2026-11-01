@@ -11,6 +11,7 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 import { PricesSettings } from "./settings/PricesSettings";
+import { RetentionPanel } from "./settings/RetentionPanel";
 import { SourcesSettings } from "./settings/SourcesSettings";
 import { CostsPage } from "./costs/CostsPage";
 import { Overview } from "./overview/Overview";
@@ -226,6 +227,7 @@ const routes = PAGES.map((p) =>
           <Page title={p.label}>
             <SourcesSettings />
             <PricesSettings />
+            <RetentionPanel />
           </Page>
         );
       // Every page has a body above; TypeScript checks none is missed.
