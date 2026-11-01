@@ -50,6 +50,9 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::commands::sources::detect_sources,
             crate::commands::sources::add_source,
             crate::commands::sources::set_source_enabled,
+            crate::commands::prices::list_price_overrides,
+            crate::commands::prices::set_price_override,
+            crate::commands::prices::remove_price_override,
         ])
 }
 
