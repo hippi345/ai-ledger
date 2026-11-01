@@ -63,15 +63,26 @@ fn current_label(app: &tauri::AppHandle) -> String {
 
 /// Builds the tray icon with Today / Show / Quit. Call after the state is managed.
 pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
-    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+    use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
     use tauri::tray::TrayIconBuilder;
     use tauri::Manager;
 
     let today = MenuItem::with_id(app, "today", current_label(app), false, None::<&str>)?;
+    let paused = app
+        .try_state::<crate::state::AppState>()
+        .is_some_and(|s| crate::live::paused(&s));
+    let pause = CheckMenuItem::with_id(
+        app,
+        "pause",
+        "Pause live updates",
+        true,
+        paused,
+        None::<&str>,
+    )?;
     let show = MenuItem::with_id(app, "show", "Show AI Ledger", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
-    let menu = Menu::with_items(app, &[&today, &sep, &show, &quit])?;
+    let menu = Menu::with_items(app, &[&today, &sep, &pause, &show, &quit])?;
     let mut b = TrayIconBuilder::with_id("main")
         .tooltip("AI Ledger")
         .menu(&menu)
@@ -83,6 +94,7 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
                     let _ = w.set_focus();
                 }
             }
+            "pause" => toggle_pause(app),
             "quit" => app.exit(0),
             _ => {}
         });
@@ -91,7 +103,29 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
     }
     b.build(app)?;
     app.manage(TrayToday(today));
+    app.manage(TrayPause(pause));
     Ok(())
+}
+
+/// The "Pause live updates" check item.
+pub struct TrayPause(pub tauri::menu::CheckMenuItem<tauri::Wry>);
+
+/// Flips `live.paused` and mirrors it in the check mark.
+fn toggle_pause(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let Some(state) = app.try_state::<crate::state::AppState>() else {
+        return;
+    };
+    let now = !crate::live::paused(&state);
+    if let Err(e) =
+        ledger_core::settings::set(&state.db(), ledger_core::settings::keys::LIVE_PAUSED, &now)
+    {
+        tracing::warn!(error = %e, "could not save pause");
+        return;
+    }
+    if let Some(p) = app.try_state::<TrayPause>() {
+        let _ = p.0.set_checked(now);
+    }
 }
 
 /// Re-reads today's totals into the tray menu (no-op without a tray).
