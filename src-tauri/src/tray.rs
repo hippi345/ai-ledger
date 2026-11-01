@@ -49,3 +49,61 @@ fn group_thousands(n: u64) -> String {
     }
     out
 }
+
+/// The "today" menu item, kept so its text can be refreshed after ingests.
+pub struct TrayToday(pub tauri::menu::MenuItem<tauri::Wry>);
+
+fn current_label(app: &tauri::AppHandle) -> String {
+    use tauri::Manager;
+    let (since, until) = today_span_local();
+    app.try_state::<crate::state::AppState>()
+        .and_then(|s| ledger_core::stats::totals_between(&s.db(), &since, &until).ok())
+        .map_or_else(|| today_label(&Totals::default()), |t| today_label(&t))
+}
+
+/// Builds the tray icon with Today / Show / Quit. Call after the state is managed.
+pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
+    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+    use tauri::tray::TrayIconBuilder;
+    use tauri::Manager;
+
+    let today = MenuItem::with_id(app, "today", current_label(app), false, None::<&str>)?;
+    let show = MenuItem::with_id(app, "show", "Show AI Ledger", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let sep = PredefinedMenuItem::separator(app)?;
+    let menu = Menu::with_items(app, &[&today, &sep, &show, &quit])?;
+    let mut b = TrayIconBuilder::with_id("main")
+        .tooltip("AI Ledger")
+        .menu(&menu)
+        .on_menu_event(|app, e| match e.id().as_ref() {
+            "show" => {
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.show();
+                    let _ = w.unminimize();
+                    let _ = w.set_focus();
+                }
+            }
+            "quit" => app.exit(0),
+            _ => {}
+        });
+    if let Some(icon) = app.default_window_icon() {
+        b = b.icon(icon.clone());
+    }
+    b.build(app)?;
+    app.manage(TrayToday(today));
+    Ok(())
+}
+
+/// Re-reads today's totals into the tray menu (no-op without a tray).
+pub fn refresh(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    if let Some(t) = app.try_state::<TrayToday>() {
+        let _ = t.0.set_text(current_label(app));
+    }
+}
+
+/// True once the tray is up, so closing the window can hide it instead.
+pub fn active(app: &tauri::AppHandle) -> bool {
+    use tauri::Manager;
+    app.try_state::<TrayToday>().is_some()
+}

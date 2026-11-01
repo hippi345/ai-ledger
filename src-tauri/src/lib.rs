@@ -22,6 +22,15 @@ pub fn run() {
     #[allow(clippy::expect_used)]
     tauri::Builder::default()
         .invoke_handler(specta.invoke_handler())
+        .on_window_event(|w, e| {
+            // Minimize to tray: closing the window hides it while the tray is up.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = e {
+                if tray::active(w.app_handle()) {
+                    api.prevent_close();
+                    let _ = w.hide();
+                }
+            }
+        })
         .setup(move |app| {
             ledger_core::logging::init();
             specta.mount_events(app);
@@ -29,6 +38,9 @@ pub fn run() {
             let state = state::AppState::open(&dir)?;
             tracing::info!(dir = %dir.display(), "ledger opened");
             app.manage(state);
+            if let Err(e) = tray::install(app.handle()) {
+                tracing::warn!(error = %e, "tray unavailable; closing the window quits");
+            }
             let handle = app.handle().clone();
             std::thread::Builder::new()
                 .name("ledger-live".into())
@@ -45,6 +57,7 @@ pub fn run() {
                                 );
                                 let ev = ipc::IngestedEvent::new(id, s);
                                 if ev.changed() {
+                                    tray::refresh(&handle);
                                     let _ = handle.emit(ipc::INGESTED_EVENT, ev);
                                 }
                             })
