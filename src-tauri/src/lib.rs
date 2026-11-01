@@ -5,6 +5,7 @@ pub mod commands;
 pub mod error;
 pub mod ipc;
 pub mod live;
+pub mod retention;
 pub mod state;
 pub mod tray;
 pub mod watcher;
@@ -52,6 +53,9 @@ pub fn run() {
             }
             if let Err(e) = tray::install(app.handle()) {
                 tracing::warn!(error = %e, "tray unavailable; closing the window quits");
+            }
+            if let Err(e) = retention::spawn(app.handle().clone()) {
+                tracing::warn!(error = %e, "retention thread not started");
             }
             let handle = app.handle().clone();
             std::thread::Builder::new()
