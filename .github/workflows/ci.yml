@@ -60,6 +60,29 @@ jobs:
       - run: npm run build
         working-directory: ui
 
+  e2e:
+    name: e2e (playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+        working-directory: ui
+      - run: npx playwright install --with-deps chromium
+        working-directory: ui
+      - run: npm run e2e
+        working-directory: ui
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: ui/test-results
+          retention-days: 7
+
   tauri-build:
     name: tauri build (${{ matrix.os }})
     needs: [rust, ui]
