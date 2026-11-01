@@ -127,7 +127,9 @@ function Shell() {
             <li key={p.path}>
               <Link
                 to={p.path}
-                activeOptions={{ exact: true }}
+                // Keep the date range and filters when switching pages.
+                search={true}
+                activeOptions={{ exact: true, includeSearch: false }}
                 activeProps={{ "aria-current": "page" }}
               >
                 {p.label}

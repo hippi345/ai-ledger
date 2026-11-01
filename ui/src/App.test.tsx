@@ -85,3 +85,16 @@ test("the Projects page shows the project usage table", async () => {
     await screen.findByRole("table", { name: "Project usage" }),
   ).toHaveTextContent("ai-ledger");
 });
+
+test("switching pages keeps the date range and filters", async () => {
+  const history = at("/?range=7d&app=%5B%22cursor%22%5D");
+  render(<App history={history} />);
+  fireEvent.click(await screen.findByRole("link", { name: "Models" }));
+  await waitFor(() => expect(history.location.pathname).toBe("/models"));
+  expect(history.location.search).toContain("range=7d");
+  expect(history.location.search).toContain("cursor");
+  expect(screen.getByRole("link", { name: "Models" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+});
