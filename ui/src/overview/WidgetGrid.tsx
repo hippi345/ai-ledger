@@ -60,6 +60,7 @@ export function WidgetGrid({ layout, onChange, render, onReset }: Props) {
         layout={layout.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }))}
         cols={COLS}
         rowHeight={40}
+        margin={[16, 16]}
         draggableHandle=".widget-handle"
         onLayoutChange={(geo) => {
           const next = applyGeometry(layout, geo);

@@ -170,5 +170,5 @@ section[aria-labelledby="budget-h"] form label {
 /* Buttons in a card column keep their natural width. */
 .shell > main > section[aria-labelledby="page-h"] > section > button,
 .shell > main > section[aria-labelledby="page-h"] > section > div > button {
-  align-self: flex-start;
+    align-self: flex-start;
 }
