@@ -1,6 +1,7 @@
 //! Live updates: debounced re-reads of changed sources (spec §7).
 
-use std::sync::mpsc::{Receiver, RecvTimeoutError};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use ledger_core::debounce::Debouncer;
@@ -8,6 +9,9 @@ use ledger_core::ingest::IngestStats;
 use ledger_core::{sources, sync};
 
 use crate::state::AppState;
+
+/// Poll interval for sources that cannot be watched (spec §7).
+pub const POLL_EVERY: Duration = Duration::from_secs(5);
 
 /// Longest the loop sleeps when nothing is pending.
 const IDLE: Duration = Duration::from_secs(3600);
@@ -62,4 +66,23 @@ pub fn run(
             return;
         }
     }
+}
+
+/// Poll fallback: sends every id in `ids` each `every` until the receiver
+/// is gone. Used for sources whose files cannot be watched (network
+/// filesystems, permissions, missing directories).
+pub fn spawn_poll(ids: Vec<i64>, tx: Sender<i64>, every: Duration) -> Option<JoinHandle<()>> {
+    if ids.is_empty() {
+        return None;
+    }
+    std::thread::Builder::new()
+        .name("ledger-poll".into())
+        .spawn(move || loop {
+            std::thread::sleep(every);
+            if ids.iter().any(|id| tx.send(*id).is_err()) {
+                return;
+            }
+        })
+        .map_err(|e| tracing::warn!(error = %e, "could not start poll fallback"))
+        .ok()
 }
