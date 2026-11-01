@@ -84,9 +84,11 @@ export function SessionsPage({ onOpen }: Props) {
               <td>{s.app}</td>
               <td>{s.project ?? "Unknown"}</td>
               <td>{s.models || "—"}</td>
-              <td>{s.events}</td>
-              <td>{formatTokens(s.tokens ?? 0)}</td>
-              <td>{s.costUsd == null ? "—" : formatCost(s.costUsd)}</td>
+              <td className="num">{s.events}</td>
+              <td className="num">{formatTokens(s.tokens ?? 0)}</td>
+              <td className="num">
+                {s.costUsd == null ? "—" : formatCost(s.costUsd)}
+              </td>
             </tr>
           ))}
         </tbody>

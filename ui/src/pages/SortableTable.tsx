@@ -48,6 +48,7 @@ export function SortableTable({ caption, columns, rows }: Props) {
             <th
               key={c.key}
               scope="col"
+              className={c.numeric ? "num" : undefined}
               aria-sort={
                 sort.col === i
                   ? sort.desc
@@ -76,10 +77,7 @@ export function SortableTable({ caption, columns, rows }: Props) {
         {sorted.map((r, ri) => (
           <tr key={ri}>
             {columns.map((c, i) => (
-              <td
-                key={c.key}
-                style={c.numeric ? { textAlign: "right" } : undefined}
-              >
+              <td key={c.key} className={c.numeric ? "num" : undefined}>
                 {c.format && r[i] != null ? c.format(r[i]) : show(r[i])}
               </td>
             ))}
