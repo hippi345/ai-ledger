@@ -44,6 +44,8 @@ export const commands = {
 	summaryCards: () => typedError<SummaryCard[], IpcError>(__TAURI_INVOKE("summary_cards")),
 	/**  Sums tool/MCP calls, failures or duration, grouped and filtered. */
 	aggregateTools: (query: ToolAggQuery_Deserialize) => typedError<AggRow[], IpcError>(__TAURI_INVOKE("aggregate_tools", { query })),
+	/**  Activity by weekday and hour for a date range. */
+	activityHeatmap: (since: string, until: string) => typedError<HeatCell[], IpcError>(__TAURI_INVOKE("activity_heatmap", { since, until })),
 };
 
 /* Types */
@@ -136,6 +138,14 @@ export type Candidate = {
 	config: Value,
 	/**  Whether an identical source is already configured. */
 	added: boolean,
+};
+
+/**  One heatmap cell. `weekday` 0 = Monday, `hour` 0..=23 UTC. */
+export type HeatCell = {
+	weekday: number,
+	hour: number,
+	events: number,
+	tokens: number | null,
 };
 
 /**  Payload of [`INGESTED_EVENT`]: which source changed and how much. */

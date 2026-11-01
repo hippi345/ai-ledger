@@ -87,6 +87,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::commands::aggregate::aggregate,
             crate::commands::summary::summary_cards,
             crate::commands::tools::aggregate_tools,
+            crate::commands::heatmap::activity_heatmap,
         ])
 }
 
