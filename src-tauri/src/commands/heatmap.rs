@@ -4,6 +4,7 @@ use serde::Serialize;
 use specta::Type;
 use tauri::State;
 
+use crate::commands::aggregate::AggFilters;
 use crate::error::IpcResult;
 use crate::state::AppState;
 
@@ -17,12 +18,21 @@ pub struct HeatCell {
 }
 
 /// Core logic (tests). Dates are UTC `YYYY-MM-DD`, `since <= day < until`.
-pub fn run(state: &AppState, since: &str, until: &str) -> IpcResult<Vec<HeatCell>> {
+pub fn run(
+    state: &AppState,
+    since: &str,
+    until: &str,
+    filters: &AggFilters,
+) -> IpcResult<Vec<HeatCell>> {
     let cells = ledger_core::stats::heatmap(
         &state.db(),
         &format!("{since}T00:00:00Z"),
         &format!("{until}T00:00:00Z"),
-        &ledger_core::aggregate::Filters::default(),
+        &ledger_core::aggregate::Filters {
+            app: filters.app.clone(),
+            model: filters.model.clone(),
+            project: filters.project.clone(),
+        },
     )?;
     Ok(cells
         .into_iter()
@@ -35,13 +45,14 @@ pub fn run(state: &AppState, since: &str, until: &str) -> IpcResult<Vec<HeatCell
         .collect())
 }
 
-/// Activity by weekday and hour for a date range.
+/// Activity by weekday and hour for a date range, filtered like aggregate.
 #[tauri::command]
 #[specta::specta]
 pub fn activity_heatmap(
     state: State<'_, AppState>,
     since: String,
     until: String,
+    filters: AggFilters,
 ) -> IpcResult<Vec<HeatCell>> {
-    run(&state, &since, &until)
+    run(&state, &since, &until, &filters)
 }
