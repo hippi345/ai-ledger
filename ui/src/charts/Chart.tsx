@@ -98,7 +98,7 @@ export function Chart({
           const url = chart.current?.getDataURL({
             type: "png",
             pixelRatio: 2,
-            backgroundColor: "#ffffff",
+            backgroundColor: "#0a0a0a",
           });
           if (url) void savePng(pngFileName(exportName, utcToday()), url);
         }}

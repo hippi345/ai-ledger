@@ -20,7 +20,7 @@ export function ExportPagePngButton({ target, name }: Props) {
         if (!target.current) return;
         const url = await toPng(target.current, {
           pixelRatio: 2,
-          backgroundColor: "#ffffff",
+          backgroundColor: "#0a0a0a",
           // Don't capture the export controls themselves.
           filter: (n) =>
             !(n instanceof HTMLElement && n.dataset.noExport !== undefined),

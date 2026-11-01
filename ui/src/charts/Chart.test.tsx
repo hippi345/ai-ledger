@@ -70,7 +70,7 @@ test("exports a PNG via the save dialog when exportName is set", async () => {
   expect(inst.getDataURL).toHaveBeenCalledWith({
     type: "png",
     pixelRatio: 2,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#0a0a0a",
   });
   await waitFor(() => expect(writeFile).toHaveBeenCalled());
   expect(save.mock.calls[0][0].defaultPath).toMatch(

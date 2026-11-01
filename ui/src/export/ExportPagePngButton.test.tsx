@@ -37,6 +37,7 @@ test("captures the target, skipping export controls, and saves it", async () => 
   expect(el).toBe(screen.getByRole("region", { name: "Overview" }));
   expect(opts.filter(screen.getByRole("button"))).toBe(false);
   expect(opts.filter(screen.getByText("content"))).toBe(true);
+  expect(opts.backgroundColor).toBe("#0a0a0a");
   expect(save.mock.calls[0][0].defaultPath).toMatch(
     /^ai-ledger-overview-\d{4}-\d{2}-\d{2}\.png$/,
   );
