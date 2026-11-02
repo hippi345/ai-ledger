@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   Link,
   Outlet,
@@ -118,9 +118,33 @@ function GlobalLive() {
   );
 }
 
+const RAIL_KEY = "ui.sidebar_collapsed";
+
+/** Sidebar collapsed to an icon rail; remembered on this machine only. */
+function useRail() {
+  const [rail, setRail] = useState(() => {
+    try {
+      return localStorage.getItem(RAIL_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggle = () =>
+    setRail((r) => {
+      try {
+        localStorage.setItem(RAIL_KEY, r ? "0" : "1");
+      } catch {
+        // Storage unavailable: keep the choice for this session only.
+      }
+      return !r;
+    });
+  return [rail, toggle] as const;
+}
+
 function Shell() {
+  const [rail, toggleRail] = useRail();
   return (
-    <div className="shell">
+    <div className={rail ? "shell rail" : "shell"}>
       <nav aria-label="Main">
         <h1>AI Ledger</h1>
         <ul>
@@ -132,13 +156,22 @@ function Shell() {
                 search={true}
                 activeOptions={{ exact: true, includeSearch: false }}
                 activeProps={{ "aria-current": "page" }}
+                title={p.label}
               >
-                {p.label}
+                <span className="nav-label">{p.label}</span>
               </Link>
             </li>
           ))}
         </ul>
         <p>Local-first. No data leaves this machine.</p>
+        <button
+          type="button"
+          className="rail-toggle btn-ghost"
+          aria-label="Collapse sidebar"
+          aria-pressed={rail}
+          title={rail ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={toggleRail}
+        />
       </nav>
       <main>
         <header>
