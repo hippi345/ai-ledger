@@ -114,10 +114,32 @@ test("changing the mapping clears a stale preview", async () => {
   render(<ImportPanel onAdded={() => {}} />);
   fireEvent.click(screen.getByRole("button", { name: "Choose file…" }));
   await screen.findByRole("table", { name: "Sample rows" });
+  fireEvent.change(screen.getByRole("textbox", { name: /App name/ }), {
+    target: { value: "openai" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Preview" }));
   await screen.findByRole("button", { name: "Add source" });
   fireEvent.change(screen.getByRole("combobox", { name: "Model" }), {
     target: { value: "" },
   });
   expect(screen.queryByRole("button", { name: "Add source" })).toBeNull();
+});
+
+test("without an App column or App name, Preview explains what is missing", async () => {
+  open.mockResolvedValue("/tmp/u.csv");
+  invoke.mockImplementation(async (cmd: string) =>
+    cmd === "inspect_import" ? inspection : preview,
+  );
+  render(<ImportPanel onAdded={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: "Choose file…" }));
+  await screen.findByRole("table", { name: "Sample rows" });
+  expect(screen.getByRole("note")).toHaveTextContent(
+    "Pick an App column or enter an App name to preview.",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+  expect(invoke).not.toHaveBeenCalledWith("preview_import", expect.anything());
+  fireEvent.change(screen.getByRole("textbox", { name: /App name/ }), {
+    target: { value: "openai" },
+  });
+  expect(screen.queryByRole("note")).toBeNull();
 });
