@@ -51,3 +51,41 @@ ol[aria-label="Timeline"] time {
     color: var(--text-muted);
     font-feature-settings: "tnum";
 }
+
+/* Sessions two-pane (redesign §6): list left (5 cols), timeline right (7, sticky). */
+.sessions.two-pane {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: var(--space-4);
+    align-items: start;
+}
+
+.sessions-list {
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.sessions-detail {
+    position: sticky;
+    top: 0;
+    min-width: 0;
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+tbody tr.selected {
+    background: var(--surface-active);
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+
+@media (max-width: 1100px) {
+    .sessions.two-pane {
+        grid-template-columns: 1fr;
+    }
+
+    .sessions-detail {
+        position: static;
+    }
+}
