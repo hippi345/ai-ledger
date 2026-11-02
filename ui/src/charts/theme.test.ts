@@ -3,6 +3,7 @@ import {
   areaGradient,
   formatCost,
   formatCount,
+  formatCostAxis,
   formatTokens,
   seriesColor,
   PALETTE,
@@ -42,4 +43,13 @@ test("formatCount never shows -0", () => {
   expect(formatCount(-0)).toBe("0");
   expect(formatCount(-3)).toBe("0");
   expect(formatCount(1234)).toBe("1,234");
+});
+
+test("formatCostAxis keeps small ticks distinct", () => {
+  expect([0, 0.002, 0.004, 0.006].map(formatCostAxis)).toEqual(["$0", "$0.002", "$0.004", "$0.006"]);
+  expect(formatCostAxis(0.25)).toBe("$0.25");
+  expect(formatCostAxis(1.5)).toBe("$1.5");
+  expect(formatCostAxis(1240)).toBe("$1,240");
+  expect(formatCostAxis(-0)).toBe("$0");
+  expect(formatCostAxis(0.00001)).toBe("<$0.0001");
 });

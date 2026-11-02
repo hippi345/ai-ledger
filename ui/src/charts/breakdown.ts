@@ -1,6 +1,6 @@
 import type { EChartsCoreOption } from "echarts/core";
 import type { SeriesRow } from "./stackedArea";
-import { BAR, formatCost, formatTokens, seriesColor } from "./theme";
+import { BAR, formatCost, formatCostAxis, formatTokens, seriesColor } from "./theme";
 
 const label = (k: string) => (k === "" ? "Unknown" : k);
 
@@ -19,7 +19,10 @@ export function barOption(rows: SeriesRow[], metric: "tokens" | "cost"): ECharts
   const fmt = metric === "cost" ? formatCost : formatTokens;
   return {
     tooltip: { trigger: "item", valueFormatter: (v: number) => fmt(v) },
-    xAxis: { type: "value", axisLabel: { formatter: (v: number) => fmt(v) } },
+    xAxis: {
+      type: "value",
+      axisLabel: { formatter: (v: number) => (metric === "cost" ? formatCostAxis(v) : fmt(v)) },
+    },
     yAxis: { type: "category", data: items.map((i) => label(i.name)) },
     series: [
       {

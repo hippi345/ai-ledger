@@ -56,6 +56,16 @@ export function formatCost(usd: number): string {
   return `~$${Math.round(v).toLocaleString("en-US")}`;
 }
 
+/** Axis tick USD with adaptive precision, so small ranges stay readable:
+ * $0, $0.0025, $0.004, $0.25, $1.5, $18, $1,240. */
+export function formatCostAxis(usd: number): string {
+  const v = Math.max(0, usd) || 0;
+  if (v === 0) return "$0";
+  if (v < 0.0001) return "<$0.0001";
+  if (v >= 10) return `$${Math.round(v).toLocaleString("en-US")}`;
+  return `$${Number(v.toPrecision(2))}`;
+}
+
 export const CHART_FONT = "Geist Sans, Geist, Inter, system-ui, sans-serif";
 
 const axisCommon = {

@@ -1,5 +1,5 @@
 import type { EChartsCoreOption } from "echarts/core";
-import { areaGradient, formatCost, formatTokens, LEGEND_GRID, LEGEND_TOP, seriesColor } from "./theme";
+import { areaGradient, formatCost, formatCostAxis, formatTokens, LEGEND_GRID, LEGEND_TOP, seriesColor } from "./theme";
 
 /** An aggregate row grouped by [bucket, dimension]. */
 export type SeriesRow = { keys: string[]; value: number | null };
@@ -22,7 +22,10 @@ export function stackedAreaOption(rows: SeriesRow[], metric: "tokens" | "cost"):
     legend: { type: "scroll", ...LEGEND_TOP, show: names.length > 1 },
     grid: LEGEND_GRID,
     xAxis: { type: "category", boundaryGap: false, data: buckets },
-    yAxis: { type: "value", axisLabel: { formatter: (v: number) => fmt(v) } },
+    yAxis: {
+      type: "value",
+      axisLabel: { formatter: (v: number) => (metric === "cost" ? formatCostAxis(v) : fmt(v)) },
+    },
     tooltip: { trigger: "axis", valueFormatter: (v: number) => fmt(v) },
     series: names.map((name, i) => ({
       name: name === "" ? "Unknown" : name,
