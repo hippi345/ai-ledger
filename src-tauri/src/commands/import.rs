@@ -217,6 +217,13 @@ pub fn preview_import(spec: ImportSpec) -> IpcResult<ImportPreview> {
 /// Adds a CSV/JSON import source with the chosen mapping and reads it.
 #[tauri::command]
 #[specta::specta]
-pub fn add_import(state: State<'_, AppState>, spec: ImportSpec) -> IpcResult<i64> {
-    core::add(&state, spec)
+pub fn add_import(
+    state: State<'_, AppState>,
+    live: State<'_, crate::live::Live>,
+    spec: ImportSpec,
+) -> IpcResult<i64> {
+    let id = core::add(&state, spec)?;
+    // Already read once; watch the file so later appends show up live.
+    live.reload(&state, None);
+    Ok(id)
 }

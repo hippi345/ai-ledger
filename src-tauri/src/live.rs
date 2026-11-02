@@ -1,6 +1,8 @@
 //! Live updates: debounced re-reads of changed sources (spec §7).
 
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
@@ -86,6 +88,18 @@ pub fn run(
 /// is gone. Used for sources whose files cannot be watched (network
 /// filesystems, permissions, missing directories).
 pub fn spawn_poll(ids: Vec<i64>, tx: Sender<i64>, every: Duration) -> Option<JoinHandle<()>> {
+    spawn_poll_gen(ids, tx, every, Arc::new(AtomicU64::new(0)), 0)
+}
+
+/// [`spawn_poll`] that also stops once `gen` moves past `mine` (the watcher
+/// was rebuilt and a new poll thread took over).
+fn spawn_poll_gen(
+    ids: Vec<i64>,
+    tx: Sender<i64>,
+    every: Duration,
+    gen: Arc<AtomicU64>,
+    mine: u64,
+) -> Option<JoinHandle<()>> {
     if ids.is_empty() {
         return None;
     }
@@ -93,6 +107,9 @@ pub fn spawn_poll(ids: Vec<i64>, tx: Sender<i64>, every: Duration) -> Option<Joi
         .name("ledger-poll".into())
         .spawn(move || loop {
             std::thread::sleep(every);
+            if gen.load(Ordering::SeqCst) != mine {
+                return;
+            }
             if ids.iter().any(|id| tx.send(*id).is_err()) {
                 return;
             }
@@ -116,4 +133,78 @@ pub fn prepare(state: &AppState) -> ledger_core::Result<(LiveWatch, Receiver<i64
     }
     spawn_poll(watch.unwatched.clone(), tx, POLL_EVERY);
     Ok((watch, rx))
+}
+
+/// Live updates that follow source changes made while the app runs: holds
+/// the change channel and the current watcher so adding, enabling or
+/// disabling a source can rebuild the watcher and read the source at once.
+#[derive(Default)]
+pub struct Live {
+    inner: Mutex<Option<LiveInner>>,
+    gen: Arc<AtomicU64>,
+}
+
+struct LiveInner {
+    tx: Sender<i64>,
+    watch: LiveWatch,
+}
+
+impl Live {
+    /// Like [`prepare`], but keeps the sender and watcher here so
+    /// [`Self::reload`] can rebuild them. Returns the receiver for [`run`].
+    pub fn start(&self, state: &AppState) -> ledger_core::Result<Receiver<i64>> {
+        let (tx, rx) = mpsc::channel();
+        self.rebuild(state, tx)?;
+        for s in sources::list(&state.db())?
+            .into_iter()
+            .filter(|s| s.enabled)
+        {
+            if let Some(inner) = self.lock().as_ref() {
+                let _ = inner.tx.send(s.id);
+            }
+        }
+        Ok(rx)
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, Option<LiveInner>> {
+        self.inner.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    fn rebuild(&self, state: &AppState, tx: Sender<i64>) -> ledger_core::Result<()> {
+        let watch = watcher::watch(state, tx.clone())?;
+        let mine = self.gen.fetch_add(1, Ordering::SeqCst) + 1;
+        spawn_poll_gen(
+            watch.unwatched.clone(),
+            tx.clone(),
+            POLL_EVERY,
+            Arc::clone(&self.gen),
+            mine,
+        );
+        *self.lock() = Some(LiveInner { tx, watch });
+        Ok(())
+    }
+
+    /// Call after sources are added, enabled or disabled: rebuilds the
+    /// watcher (and poll fallback) for the current enabled sources and, if
+    /// `read` is given, queues that source for an immediate read. A no-op
+    /// before [`Self::start`].
+    pub fn reload(&self, state: &AppState, read: Option<i64>) {
+        let Some(tx) = self.lock().as_ref().map(|i| i.tx.clone()) else {
+            return;
+        };
+        if let Err(e) = self.rebuild(state, tx.clone()) {
+            tracing::warn!(error = %e, "could not rebuild the file watcher");
+        }
+        if let Some(id) = read {
+            let _ = tx.send(id);
+        }
+    }
+
+    /// Sources currently on the poll fallback (tests and diagnostics).
+    pub fn unwatched(&self) -> Vec<i64> {
+        self.lock()
+            .as_ref()
+            .map(|i| i.watch.unwatched.clone())
+            .unwrap_or_default()
+    }
 }

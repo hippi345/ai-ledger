@@ -132,3 +132,35 @@ fn paused_holds_changes_until_resumed() {
     drop(tx);
     h.join().unwrap();
 }
+
+#[test]
+fn a_source_added_while_running_is_read_and_watched() {
+    let mut r = Registry::new();
+    r.register(Box::new(Counter)).unwrap();
+    let s = AppState::with_registry(ledger_core::db::open_in_memory().unwrap(), r);
+    let lv = live::Live::default();
+    let rx = lv.start(&s).unwrap();
+    assert!(rx.try_recv().is_err());
+    assert!(lv.unwatched().is_empty());
+    let cand = SourceCandidate {
+        reader_id: "counter".into(),
+        label: "Counter".into(),
+        config: serde_json::json!({}),
+    };
+    let id = sources::add(&s.db(), &cand, Tier::Native).unwrap().id;
+    lv.reload(&s, Some(id));
+    assert_eq!(rx.recv_timeout(Duration::from_secs(2)).unwrap(), id);
+    // No watch paths, so the rebuilt watcher puts it on the poll fallback.
+    assert_eq!(lv.unwatched(), vec![id]);
+    sources::set_enabled(&s.db(), id, false).unwrap();
+    lv.reload(&s, None);
+    assert!(lv.unwatched().is_empty());
+}
+
+#[test]
+fn reload_before_start_is_a_no_op() {
+    let (s, id) = state();
+    let lv = live::Live::default();
+    lv.reload(&s, Some(id));
+    assert!(lv.unwatched().is_empty());
+}
