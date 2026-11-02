@@ -1,24 +1,29 @@
-import {
-  WIDGET_KINDS,
-  addWidget,
-  type Widget,
-  type WidgetKind,
-} from "./widgets";
+import { WIDGET_KINDS, type Widget } from "./widgets";
 
 /** Setting key the Overview layout is saved under. */
 export const LAYOUT_KEY = "ui.overview_layout";
 
-/** The spec's default Overview (item 56 may refine it). */
-export const DEFAULT_LAYOUT: Widget[] = (
-  [
-    "summary",
-    "tokens-over-time",
-    "cost-trend",
-    "models-donut",
-    "apps-bar",
-    "tool-calls",
-  ] as WidgetKind[]
-).reduce<Widget[]>((l, k) => addWidget(l, k), []);
+/**
+ * The default Overview (redesign §6): summary across the top, tokens over time
+ * next to cost, three breakdowns in a row, then the heatmap full width.
+ * Only new and reset layouts use it; saved layouts are untouched.
+ */
+export const DEFAULT_LAYOUT: Widget[] = [
+  { i: "summary-1", kind: "summary", x: 0, y: 0, w: 12, h: 3 },
+  { i: "tokens-over-time-1", kind: "tokens-over-time", x: 0, y: 3, w: 8, h: 6 },
+  { i: "cost-trend-1", kind: "cost-trend", x: 8, y: 3, w: 4, h: 6 },
+  { i: "models-donut-1", kind: "models-donut", x: 0, y: 9, w: 4, h: 6 },
+  { i: "apps-bar-1", kind: "apps-bar", x: 4, y: 9, w: 4, h: 6 },
+  { i: "tool-calls-1", kind: "tool-calls", x: 8, y: 9, w: 4, h: 6 },
+  {
+    i: "activity-heatmap-1",
+    kind: "activity-heatmap",
+    x: 0,
+    y: 15,
+    w: 12,
+    h: 6,
+  },
+];
 
 const isInt = (v: unknown, min = 0) =>
   Number.isInteger(v) && (v as number) >= min;
