@@ -83,6 +83,9 @@ pub struct PeriodSummary<'a> {
     /// Leading apps/models, most used first (at most two are named).
     pub top: Vec<&'a str>,
     pub change_pct: Option<f64>,
+    /// The period has not ended yet. A drop against the full previous period
+    /// is then expected and not worth saying ("Today ... down 35%" at 9am).
+    pub in_progress: bool,
 }
 
 /// One sentence for a period card.
@@ -101,7 +104,8 @@ pub fn sentence(s: &PeriodSummary<'_>) -> String {
     if !top.is_empty() {
         parts.push(format!("mostly {}", top.join(" + ")));
     }
-    if let Some(c) = change(s.change_pct) {
+    let pct = s.change_pct.filter(|p| !(s.in_progress && *p < 0.0));
+    if let Some(c) = change(pct) {
         parts.push(c);
     }
     format!("{}: {}.", s.label, parts.join(", "))
@@ -138,9 +142,16 @@ pub fn top_mcp_sentence(period: &str, server: &str, calls: f64) -> Option<String
 
 /// "Biggest mover this week: claude-sonnet, up 120% to 1.2M tokens."
 /// Uses "new" when there was no usage before, "flat" changes give `None`.
+/// No usage yet this period reads "none yet (was 1.5K tokens)", not "down 100%".
 pub fn mover_sentence(period: &str, name: &str, current: f64, previous: f64) -> Option<String> {
     if name.is_empty() || (current <= 0.0 && previous <= 0.0) {
         return None;
+    }
+    if current <= 0.0 {
+        return Some(format!(
+            "Biggest mover {period}: {name}, none yet (was {} tokens).",
+            tokens(previous)
+        ));
     }
     let pct = (previous != 0.0).then(|| (current - previous) / previous * 100.0);
     let how = match change(pct) {
@@ -176,6 +187,7 @@ mod tests {
             cost_usd: 18.2,
             top: vec!["Cursor", "claude-sonnet", "gpt-5"],
             change_pct: Some(30.4),
+            in_progress: false,
         };
         assert_eq!(
             sentence(&s),
@@ -214,6 +226,32 @@ mod tests {
         s.tokens = 900.0;
         s.cost_usd = 0.02;
         assert_eq!(sentence(&s), "Today: 900 tokens, ~$0.02.");
+    }
+
+    #[test]
+    fn in_progress_periods_skip_drops_but_keep_rises() {
+        let mut s = PeriodSummary {
+            label: "Today",
+            tokens: 970.0,
+            cost_usd: 0.004,
+            change_pct: Some(-35.0),
+            in_progress: true,
+            ..Default::default()
+        };
+        assert_eq!(sentence(&s), "Today: 970 tokens, <$0.01.");
+        s.change_pct = Some(40.0);
+        assert_eq!(sentence(&s), "Today: 970 tokens, <$0.01, up 40%.");
+        s.in_progress = false;
+        s.change_pct = Some(-35.0);
+        assert_eq!(sentence(&s), "Today: 970 tokens, <$0.01, down 35%.");
+    }
+
+    #[test]
+    fn mover_with_no_usage_yet_is_not_down_100() {
+        assert_eq!(
+            mover_sentence("this week", "gpt-5", 0.0, 1_500.0).as_deref(),
+            Some("Biggest mover this week: gpt-5, none yet (was 1.5K tokens).")
+        );
     }
 
     #[test]
