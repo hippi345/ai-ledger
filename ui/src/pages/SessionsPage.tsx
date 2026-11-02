@@ -31,10 +31,14 @@ const when = (ts: string) => ts.slice(0, 16).replace("T", " ");
 /** Matches ledger_core::sessions::LIST_LIMIT. */
 export const SESSION_LIMIT = 500;
 
-type Props = { onOpen?: (id: string) => void };
+type Props = {
+  onOpen?: (id: string) => void;
+  /** The session shown in the timeline pane, highlighted in the list. */
+  selected?: string | null;
+};
 
 /** Sessions list, newest first; selecting one opens its timeline. */
-export function SessionsPage({ onOpen }: Props) {
+export function SessionsPage({ onOpen, selected }: Props) {
   const { sessions, error } = useSessions();
   if (error) return <p role="alert">{error}</p>;
   if (!sessions)
@@ -73,7 +77,10 @@ export function SessionsPage({ onOpen }: Props) {
         </thead>
         <tbody>
           {sessions.map((s) => (
-            <tr key={s.id}>
+            <tr
+              key={s.id}
+              className={s.id === selected ? "selected" : undefined}
+            >
               <td>
                 {onOpen ? (
                   <button
