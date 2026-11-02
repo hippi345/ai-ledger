@@ -55,9 +55,11 @@ export function ImportPanel({ onAdded }: { onAdded: () => void }) {
       ? { path, format: info.format, mapping, defaultApp: app }
       : null;
 
+  const needsApp = !!mapping && !mapping.app && app.trim() === "";
+
   const runPreview = async () => {
     const s = spec();
-    if (!s) return;
+    if (!s || needsApp) return;
     const r = await commands.previewImport(s);
     if (r.status === "ok") {
       setPreview(r.data);
@@ -153,6 +155,11 @@ export function ImportPanel({ onAdded }: { onAdded: () => void }) {
           <button type="button" onClick={() => void runPreview()}>
             Preview
           </button>
+          {needsApp && (
+            <p className="hint" role="note">
+              Pick an App column or enter an App name to preview.
+            </p>
+          )}
           {preview && (
             <>
               <p role="status" aria-label="Import preview">
