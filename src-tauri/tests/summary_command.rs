@@ -34,7 +34,7 @@ fn cards_describe_each_period() {
     let c = cards_for(&s, d("2026-11-04")).unwrap();
     assert_eq!(
         c[0].text,
-        "Today: 1M tokens, ~$2.00, mostly Cursor + gpt-5, down 67%."
+        "Today: 1M tokens, ~$2.00, mostly Cursor + gpt-5."
     );
     assert_eq!(
         c[1].text, "This week: 4M tokens, ~$12, mostly Cursor + claude-sonnet.",

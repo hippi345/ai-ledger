@@ -203,6 +203,8 @@ pub fn cards_for(state: &AppState, today: NaiveDate) -> IpcResult<Vec<SummaryCar
             cost_usd: total(&conn, &s, &u, Metric::CostUsd)?,
             top,
             change_pct: ledger_core::delta::delta(tokens, prev).pct,
+            // Today, this week and this month all contain `today`.
+            in_progress: true,
         });
         out.push(SummaryCard {
             label: label.into(),
