@@ -117,13 +117,27 @@ pub fn detect_sources(state: State<'_, AppState>) -> IpcResult<Vec<Candidate>> {
 /// Adds a detected (or user-built) source. Returns its id.
 #[tauri::command]
 #[specta::specta]
-pub fn add_source(state: State<'_, AppState>, candidate: Candidate) -> IpcResult<i64> {
-    core::add(&state, candidate)
+pub fn add_source(
+    state: State<'_, AppState>,
+    live: State<'_, crate::live::Live>,
+    candidate: Candidate,
+) -> IpcResult<i64> {
+    let id = core::add(&state, candidate)?;
+    // Read it now and watch it from here on, without a restart.
+    live.reload(&state, Some(id));
+    Ok(id)
 }
 
 /// Enables or disables a source.
 #[tauri::command]
 #[specta::specta]
-pub fn set_source_enabled(state: State<'_, AppState>, id: i64, enabled: bool) -> IpcResult<()> {
-    core::set_enabled(&state, id, enabled)
+pub fn set_source_enabled(
+    state: State<'_, AppState>,
+    live: State<'_, crate::live::Live>,
+    id: i64,
+    enabled: bool,
+) -> IpcResult<()> {
+    core::set_enabled(&state, id, enabled)?;
+    live.reload(&state, enabled.then_some(id));
+    Ok(())
 }

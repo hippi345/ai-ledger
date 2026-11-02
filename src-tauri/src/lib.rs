@@ -50,6 +50,7 @@ pub fn run() {
             let launch = autostart::wanted(&state);
             app.manage(state);
             app.manage(proxy::ProxyState::default());
+            app.manage(live::Live::default());
             // Off unless the user turned it on (proxy.enabled defaults to false).
             proxy::apply(app.handle());
             if let Err(e) = autostart::apply(app.handle(), launch) {
@@ -66,8 +67,9 @@ pub fn run() {
                 .name("ledger-live".into())
                 .spawn(move || {
                     let st = handle.state::<state::AppState>();
-                    match live::prepare(&st) {
-                        Ok((_watch, rx)) => {
+                    let lv = handle.state::<live::Live>();
+                    match lv.start(&st) {
+                        Ok(rx) => {
                             live::run(&st, rx, ledger_core::debounce::DEFAULT_WINDOW, |id, s| {
                                 tracing::info!(
                                     source = id,
