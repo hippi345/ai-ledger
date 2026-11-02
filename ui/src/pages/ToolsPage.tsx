@@ -60,21 +60,23 @@ export function ToolsPage() {
           {calls > 0 && ` (${Math.round((failures / calls) * 1000) / 10}%)`}
         </dd>
       </dl>
-      <Chart
-        label="Tool calls over time"
-        option={data.trend}
-        exportName="Tool calls over time"
-        onClick={(p) => crossTool({ name: p.seriesName ?? "" })}
-      />
-      <Chart
-        label="Calls by MCP server"
-        option={data.mcp}
-        exportName="Calls by MCP server"
-        onClick={(p) => {
-          // Built-in calls have no server; that's the "" (Unknown) filter value.
-          if (p.name !== BUILT_IN) crossMcp(p);
-        }}
-      />
+      <div className="two-col">
+        <Chart
+          label="Tool calls over time"
+          option={data.trend}
+          exportName="Tool calls over time"
+          onClick={(p) => crossTool({ name: p.seriesName ?? "" })}
+        />
+        <Chart
+          label="Calls by MCP server"
+          option={data.mcp}
+          exportName="Calls by MCP server"
+          onClick={(p) => {
+            // Built-in calls have no server; that's the "" (Unknown) filter value.
+            if (p.name !== BUILT_IN) crossMcp(p);
+          }}
+        />
+      </div>
       <ExportCsvButton name="Tools table" header={HEADER} rows={rows} />
       <SortableTable caption="Tool usage" columns={columns} rows={rows} />
     </>

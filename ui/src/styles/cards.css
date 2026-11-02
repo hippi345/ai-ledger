@@ -172,3 +172,24 @@ section[aria-labelledby="budget-h"] form label {
 .shell > main > section[aria-labelledby="page-h"] > section > div > button {
     align-self: flex-start;
 }
+
+/* Per-page grids (redesign §6): side-by-side chart cards, stacking when narrow. */
+.two-col {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: var(--space-4);
+}
+
+.two-col > div {
+    min-width: 0;
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+@media (max-width: 1100px) {
+    .two-col {
+        grid-template-columns: 1fr;
+    }
+}
