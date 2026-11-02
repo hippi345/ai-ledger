@@ -1,6 +1,6 @@
 import type { EChartsCoreOption } from "echarts/core";
 import type { SeriesRow } from "./stackedArea";
-import { BAR, LEGEND_GRID, LEGEND_TOP, PALETTE } from "./theme";
+import { BAR, formatTokens, LEGEND_GRID, LEGEND_TOP, PALETTE } from "./theme";
 
 /**
  * Top-N tool calls as a horizontal bar (spec §C): successful calls plus a red
@@ -18,7 +18,13 @@ export function toolCallsOption(calls: SeriesRow[], failures: SeriesRow[]): ECha
     tooltip: { trigger: "axis", axisPointer: { type: "line" } },
     legend: LEGEND_TOP,
     grid: LEGEND_GRID,
-    xAxis: { type: "value", minInterval: 1 },
+    // Compact labels (500, 1K, 1.5K) and few ticks so narrow widgets don't overlap.
+    xAxis: {
+      type: "value",
+      minInterval: 1,
+      splitNumber: 3,
+      axisLabel: { formatter: (v: number) => formatTokens(v), hideOverlap: true },
+    },
     yAxis: { type: "category", data: items.map((i) => i.tool) },
     series: [
       {
