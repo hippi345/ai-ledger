@@ -1,5 +1,5 @@
 import type { EChartsCoreOption } from "echarts/core";
-import { areaGradient, LEGEND_GRID, LEGEND_TOP, PALETTE, formatCost } from "./theme";
+import { areaGradient, LEGEND_GRID, LEGEND_TOP, PALETTE, formatCost, formatCostAxis } from "./theme";
 
 /** Daily cost points, `day` as UTC `YYYY-MM-DD`. */
 export type CostPoint = { day: string; cost: number };
@@ -48,7 +48,7 @@ export function costTrendOption(
     legend: LEGEND_TOP,
     grid: LEGEND_GRID,
     xAxis: { type: "category", data: days, boundaryGap: false },
-    yAxis: { type: "value", axisLabel: { formatter: (v: number) => formatCost(v) } },
+    yAxis: { type: "value", axisLabel: { formatter: (v: number) => formatCostAxis(v) } },
     series: [
       {
         name: "Cost so far",
