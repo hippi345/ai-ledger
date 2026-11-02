@@ -22,3 +22,17 @@ test("empty input gives an empty chart", () => {
   const opt = stackedAreaOption([], "cost") as { series: S[] };
   expect(opt.series).toEqual([]);
 });
+
+test("a single bucket shows its points so the chart is not blank", () => {
+  type P = { series: { showSymbol: boolean }[] };
+  const one = stackedAreaOption([{ keys: ["2026-11-02", "gpt-5"], value: 5 }], "tokens") as P;
+  expect(one.series[0].showSymbol).toBe(true);
+  const two = stackedAreaOption(
+    [
+      { keys: ["2026-11-01", "gpt-5"], value: 5 },
+      { keys: ["2026-11-02", "gpt-5"], value: 6 },
+    ],
+    "tokens",
+  ) as P;
+  expect(two.series[0].showSymbol).toBe(false);
+});

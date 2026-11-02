@@ -33,7 +33,8 @@ export function stackedAreaOption(rows: SeriesRow[], metric: "tokens" | "cost"):
       stack: "total",
       areaStyle: { color: areaGradient(seriesColor(name, i), 0.35, 0.05) },
       lineStyle: { width: 1.5 },
-      showSymbol: false,
+      // One bucket (e.g. the Today range) draws no line; show the point.
+      showSymbol: buckets.length <= 1,
       smooth: false,
       emphasis: { focus: "series" },
       color: seriesColor(name, i),
