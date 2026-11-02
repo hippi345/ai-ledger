@@ -98,9 +98,10 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
             "quit" => app.exit(0),
             _ => {}
         });
-    if let Some(icon) = app.default_window_icon() {
-        b = b.icon(icon.clone());
-    }
+    // Monochrome glyph (white on transparent); a template image on macOS.
+    b = b
+        .icon(tauri::include_image!("icons/tray.png"))
+        .icon_as_template(true);
     b.build(app)?;
     app.manage(TrayToday(today));
     app.manage(TrayPause(pause));
