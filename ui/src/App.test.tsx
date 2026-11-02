@@ -98,3 +98,13 @@ test("switching pages keeps the date range and filters", async () => {
     "page",
   );
 });
+
+test("changing pages scrolls the main area back to the top", async () => {
+  render(<App history={at("/")} />);
+  await screen.findByRole("heading", { name: "Overview" });
+  const main = screen.getByRole("main");
+  main.scrollTo = vi.fn();
+  fireEvent.click(screen.getByRole("link", { name: "Settings" }));
+  await screen.findByRole("heading", { name: "Sources" });
+  expect(main.scrollTo).toHaveBeenCalledWith({ top: 0 });
+});

@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Link,
   Outlet,
   useNavigate,
+  useRouterState,
   useSearch,
   createHashHistory,
   createRootRoute,
@@ -143,6 +144,12 @@ function useRail() {
 
 function Shell() {
   const [rail, toggleRail] = useRail();
+  const mainRef = useRef<HTMLElement>(null);
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  // A new page starts at the top; filter or range changes keep the scroll.
+  useEffect(() => {
+    mainRef.current?.scrollTo?.({ top: 0 });
+  }, [path]);
   return (
     <div className={rail ? "shell rail" : "shell"}>
       <nav aria-label="Main">
@@ -173,7 +180,7 @@ function Shell() {
           onClick={toggleRail}
         />
       </nav>
-      <main>
+      <main ref={mainRef}>
         <header>
           <GlobalLive />
           <GlobalRange />
