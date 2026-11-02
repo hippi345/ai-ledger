@@ -14,6 +14,7 @@ test("saves a named view and clears the input", () => {
       onDelete={vi.fn()}
     />,
   );
+  fireEvent.click(screen.getByRole("button", { name: "Views" }));
   const save = screen.getByRole("button", { name: "Save view" });
   expect(save).toBeDisabled();
   fireEvent.change(screen.getByLabelText("View name"), {
@@ -35,8 +36,29 @@ test("applies and deletes saved views", () => {
       onDelete={onDelete}
     />,
   );
+  fireEvent.click(screen.getByRole("button", { name: "Views" }));
   fireEvent.click(screen.getByRole("button", { name: "Work" }));
   expect(onApply).toHaveBeenCalledWith(views[0]);
+  fireEvent.click(screen.getByRole("button", { name: "Views" }));
   fireEvent.click(screen.getByRole("button", { name: "Delete view Work" }));
   expect(onDelete).toHaveBeenCalledWith("Work");
+});
+
+test("the Views button opens and closes the popover", () => {
+  render(
+    <SavedViews
+      views={views}
+      onSave={vi.fn()}
+      onApply={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  );
+  const toggle = screen.getByRole("button", { name: "Views" });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(screen.getByLabelText("View name")).not.toBeVisible();
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByLabelText("View name")).toBeVisible();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
 });
