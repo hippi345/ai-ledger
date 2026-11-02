@@ -1,0 +1,98 @@
+/* Collapsible icon rail (redesign §6): toggle button, or automatically below 960px. */
+.rail-toggle {
+    align-self: flex-start;
+    width: 28px;
+    height: 28px;
+    margin: var(--space-2) 0 0 var(--space-1);
+    padding: 0;
+    color: var(--text-subtle);
+}
+
+.rail-toggle::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    background: currentColor;
+    -webkit-mask: var(--rail-icon) no-repeat center / 16px;
+    mask: var(--rail-icon) no-repeat center / 16px;
+    /* Lucide panel-left-close (ISC) */
+    --rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='2'/%3E%3Cpath d='M9 3v18M16 15l-3-3 3-3'/%3E%3C/svg%3E");
+}
+
+.shell.rail .rail-toggle::before {
+    transform: scaleX(-1);
+}
+
+.shell.rail .rail-toggle[aria-pressed="true"] {
+    background: transparent;
+    box-shadow: none;
+}
+
+.shell.rail {
+    --sidebar-w: 56px;
+}
+
+.shell.rail > nav {
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+}
+
+.shell.rail > nav .nav-label,
+.shell.rail > nav > h1,
+.shell.rail > nav > p {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.shell.rail > nav a {
+    justify-content: center;
+    padding: 0;
+}
+
+.shell.rail > nav a::before {
+    margin-right: 0;
+}
+
+.shell.rail .rail-toggle {
+    align-self: center;
+    margin-left: 0;
+}
+
+@media (max-width: 959px) {
+    .shell {
+        --sidebar-w: 56px;
+    }
+
+    .shell > nav {
+        padding-left: var(--space-2);
+        padding-right: var(--space-2);
+    }
+
+    .shell > nav .nav-label,
+    .shell > nav > h1,
+    .shell > nav > p {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    .shell > nav a {
+        justify-content: center;
+        padding: 0;
+    }
+
+    .shell > nav a::before {
+        margin-right: 0;
+    }
+
+    .rail-toggle {
+        display: none;
+    }
+}
