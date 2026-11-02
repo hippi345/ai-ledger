@@ -35,6 +35,7 @@ export function costTrendOption(
     run += byDay.get(d) ?? 0;
     return run;
   });
+  const single = actual.filter((v) => v != null).length <= 1;
   const projected = projectTotal(points, periodStart, periodEnd, today);
   const iToday = days.indexOf(today);
   const lastIdx = days.length - 1;
@@ -53,7 +54,8 @@ export function costTrendOption(
       {
         name: "Cost so far",
         type: "line",
-        showSymbol: false,
+        // A single day (e.g. the Today range) draws no line; show the point.
+        showSymbol: single,
         lineStyle: { width: 1.5 },
         areaStyle: { color: areaGradient(PALETTE[0], 0.25, 0) },
         color: PALETTE[0],
