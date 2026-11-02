@@ -24,6 +24,11 @@ pub fn run() {
 
     #[allow(clippy::expect_used)]
     tauri::Builder::default()
+        // Must be registered first: a second launch hands off to this one,
+        // which shows and focuses its window, then exits.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            tray::show_main(app);
+        }))
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,

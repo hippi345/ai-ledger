@@ -87,13 +87,7 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
         .tooltip("AI Ledger")
         .menu(&menu)
         .on_menu_event(|app, e| match e.id().as_ref() {
-            "show" => {
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.show();
-                    let _ = w.unminimize();
-                    let _ = w.set_focus();
-                }
-            }
+            "show" => show_main(app),
             "pause" => toggle_pause(app),
             "quit" => app.exit(0),
             _ => {}
@@ -106,6 +100,17 @@ pub fn install(app: &tauri::AppHandle) -> tauri::Result<()> {
     app.manage(TrayToday(today));
     app.manage(TrayPause(pause));
     Ok(())
+}
+
+/// Shows, unminimizes and focuses the main window (tray "Show", or a second
+/// launch handed off by the single-instance plugin).
+pub fn show_main(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
 }
 
 /// The "Pause live updates" check item.

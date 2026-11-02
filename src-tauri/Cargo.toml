@@ -34,6 +34,7 @@ notify = "8"
 tauri-plugin-autostart = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-single-instance = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 ledger-core = { path = "../crates/ledger-core" }
 reader-cursor = { path = "../crates/readers/cursor" }
