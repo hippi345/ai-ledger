@@ -2,6 +2,7 @@ import {
   alpha,
   areaGradient,
   formatCost,
+  formatCount,
   formatTokens,
   seriesColor,
   PALETTE,
@@ -35,4 +36,10 @@ test("alpha and area gradients", () => {
     "rgba(59,130,246,0.35)",
     "rgba(59,130,246,0.05)",
   ]);
+});
+
+test("formatCount never shows -0", () => {
+  expect(formatCount(-0)).toBe("0");
+  expect(formatCount(-3)).toBe("0");
+  expect(formatCount(1234)).toBe("1,234");
 });

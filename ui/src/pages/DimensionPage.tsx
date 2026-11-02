@@ -1,5 +1,5 @@
 import { Chart } from "../charts/Chart";
-import { formatCost, formatTokens } from "../charts/theme";
+import { formatCost, formatCount, formatTokens } from "../charts/theme";
 import { ExportCsvButton } from "../export/ExportCsvButton";
 import { FILTER_LABELS } from "../filters/filters";
 import { useCrossFilter } from "../filters/useFilters";
@@ -38,7 +38,7 @@ export function DimensionPage({ dim }: { dim: PageDim }) {
       key: "requests",
       label: "Requests",
       numeric: true,
-      format: (v) => num(v).toLocaleString("en-US"),
+      format: (v) => formatCount(num(v)),
     },
   ];
   const { tokens, cost, requests } = data.totals;
@@ -50,7 +50,7 @@ export function DimensionPage({ dim }: { dim: PageDim }) {
         <dt>Cost</dt>
         <dd>{cost == null ? "—" : formatCost(cost)}</dd>
         <dt>Requests</dt>
-        <dd>{requests == null ? "—" : requests.toLocaleString("en-US")}</dd>
+        <dd>{requests == null ? "—" : formatCount(requests)}</dd>
       </dl>
       <Chart
         label={`Tokens over time by ${label.toLowerCase()}`}

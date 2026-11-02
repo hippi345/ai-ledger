@@ -40,6 +40,13 @@ export function formatTokens(n: number): string {
   return v.toFixed(0);
 }
 
+/** A whole count such as requests: "1,234". Never "-0" (an empty SUM can
+ * come back as negative zero) and never negative. */
+export function formatCount(n: number): string {
+  const v = Math.max(0, Math.round(n)) || 0;
+  return v.toLocaleString("en-US");
+}
+
 /** Approximate USD: ~$0, <$0.01, ~$0.42, ~$18, ~$1,240. */
 export function formatCost(usd: number): string {
   const v = Math.max(0, usd);
